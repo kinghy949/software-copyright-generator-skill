@@ -1,6 +1,6 @@
 ---
 name: software-copyright-generator
-description: "Generate a software copyright registration material bundle for common Web systems. Use when the user asks for 软著, 软件著作权, 申请表, 操作手册, 代码文档, 三件套, or wants to generate copyright application materials from only a software name and a short Chinese system introduction. The skill expects the calling model (Claude / Codex) to write all natural-language content and Java/Vue code into a spec.json; the bundled Python pipeline only validates the spec and assembles three .docx files plus 16 screenshot-style images in a fixed visual format."
+description: "Generate a software copyright registration material bundle for common Web systems. Use when the user asks for 软著, 软件著作权, 申请表, 操作手册, 代码文档, 三件套, or wants to generate copyright application materials from only a software name and a short Chinese system introduction. The skill expects the calling model (Claude / Codex) to write all natural-language content and Java/Vue code into a spec.json; the bundled Python pipeline validates the spec, renders 16 mockup images, builds three R Markdown files and compiles them to PDFs via xelatex (TinyTeX) with proper TOC, page numbers, fonts, and formatting."
 ---
 
 # Software Copyright Generator
@@ -13,11 +13,12 @@ Workflow for every invocation:
 
 1. Read `系统全名` and `系统简介` from the user.
 2. **Write all申请表 / 操作手册 / 代码文档 content yourself** into a fresh `spec.json` that conforms to the schema below. Do not reuse content from previous runs verbatim — vary the wording, module names that are appropriate to the system, code identifiers, and architecture layers each time. Two invocations with the same inputs should produce visibly different content.
-3. Run `scripts/render_bundle.py --spec spec.json --output-dir <out>`. The script will:
-   - validate the spec (and exit with a clear error if anything is wrong)
+3. Run `scripts/render_pdf.py --spec spec.json --output-dir <out>`. The script will:
+   - validate the spec (and exit with a clear error if anything is wrong) before invoking R
    - render 16 mockup images (including the architecture diagram from your spec)
-   - fill the申请表 tables, the操作手册 sections, and the代码文档 line stream
-   - enforce uniform fonts, sizes, and black-only colors
+   - build three R Markdown files (`application.Rmd`, `manual.Rmd`, `code.Rmd`) under `<out>/_build/`
+   - call `Rscript -e 'rmarkdown::render(...)'` per document to compile each into a PDF via xelatex
+   - copy the PDFs to `<out>/` with friendly names
 4. If the script errors, **read the error message and rewrite spec.json**; do not bypass the script.
 
 You must not hardcode content from this file into the spec — these are constraints, not snippets to copy.
@@ -101,15 +102,28 @@ Required top-level fields (the validator will reject the spec if any is missing 
 
 ## Format Constraints Enforced by the Pipeline
 
-You do not need to set these — the script applies them on every render:
+You do not need to set these — the LaTeX preamble (`templates/rmd/preamble.tex`) and the Rmd templates apply them on every render:
 
-- 申请表 / 操作手册：全文 **宋体 五号 黑色**
-- 代码文档：**Times New Roman + 宋体（中文）五号 黑色**
-- 操作手册目录：缩进 + 点引线 + 页码
-- 小节编号：`2.2.x` (模块) → `2.2.x.y` (group) → `（n）` (step)
-- 代码文档：行间距 1.0，零段前/段后间距
-- 三个 docx 的 header / footer 自动注入软件名 + 版本
-- 16 张配图自动嵌入到操作手册（image1 = 架构图，image2-16 = 6 模块对应场景）
+- 全文 **宋体** （CJK，fallback `Songti SC` → `Noto Serif CJK SC` → `PingFang SC`） + **Times New Roman** （Latin）+ **五号**（10.5pt）+ **黑色**
+- 操作手册和代码文档自带 **真正的 PDF 目录**（pandoc 生成 `\tableofcontents`，可点击跳转、页码自动）
+- 章节自动编号：申请表三大表区不编号；操作手册 `1 / 2.1 / 2.2.x` 自动；代码文档 `1 / 2 / …` 自动
+- 模块小节内部用 Jinja 显式编号 `（1）/（2）/…` 标步骤
+- 每个模块自动 `\clearpage` 开新页
+- 操作手册架构图嵌入位置：2.1 节 `图 2-1 系统架构图`
+- 模块截图嵌入：2.2.x 节内带 `图 2-x-y` 题注
+- 三份 PDF 都有封面页（标题 + 副标题 + 版本 + 日期）+ 页眉（含软件名/版本/文档类型）+ 居中页码
+- 代码文档使用 `listings` 框线 + 行号，全黑（无语法着色）
+- 代码总非空行 < 3200 时，脚本在「附录 A 通用工具类」自动追加占位 `XxxSupport001/002/…`
+
+## Prerequisites (one-time)
+
+The host machine must have:
+
+- Python 3.12+ with `Pillow`, `Jinja2`, `pikepdf` (see `requirements.txt`)
+- R 4.x with packages `rmarkdown`, `knitr`, `tinytex`
+- TinyTeX (`tinytex::install_tinytex()`) — provides `xelatex` and auto-installs missing LaTeX packages on first use
+- pandoc ≥ 2 (system package, or shipped with RStudio)
+- CJK fonts: macOS / Windows have 宋体 by default; Linux needs `fonts-noto-cjk`
 
 ## Workflow Example
 
@@ -117,8 +131,8 @@ You do not need to set these — the script applies them on every render:
 # Author spec.json (this is your job — content varies every run)
 $EDITOR spec.json
 
-# Validate + assemble (this never invents content)
-python scripts/render_bundle.py --spec spec.json --output-dir ./out
+# Validate + render to PDF
+python scripts/render_pdf.py --spec spec.json --output-dir ./out
 
 # If validation fails:
 #   - read the SpecError message printed to stderr
@@ -128,27 +142,32 @@ python scripts/render_bundle.py --spec spec.json --output-dir ./out
 
 The render output directory contains:
 
-- `基于SpringBoot的<系统名>_申请表.docx`
-- `基于Java&Vue的<系统名>_操作手册.docx`
-- `基于Java&Vue的<系统名>_代码文档.docx`
+- `基于SpringBoot的<系统名>_申请表.pdf`
+- `基于Java&Vue的<系统名>_操作手册.pdf`
+- `基于Java&Vue的<系统名>_代码文档.pdf`
 - `<系统名>_spec.json` (the normalized, validated spec)
 - `mockups/` with 16 generated images
+- `_build/` with the intermediate Rmd / tex sources (useful for debugging LaTeX errors)
 
 ## What This Skill Will Not Do
 
 - Generate content from a Python template (the previous version did; it no longer does).
 - Reuse a hardcoded module list. You must invent modules that suit the system.
+- Emit `.docx` (the previous version did; PDF only now).
 - Provide an `--offline` mode. The pipeline always requires a spec produced by you.
 - Submit anything to an official copyright registration system.
 
 ## Files
 
-- `scripts/render_bundle.py` — entry point; validates the spec and assembles the bundle.
-- `scripts/template_rewriter.py` — spec schema, validator, and structural builders.
-- `scripts/render_mockups.py` — 16-image renderer (including the architecture diagram driven by `spec.architecture.layers`).
-- `scripts/smoke_test.py` — CI smoke test; uses `assets/fixtures/sample_spec.json` as a stand-in for what you would normally write.
-- `assets/templates/` — the three `.docx` skeletons.
-- `assets/fixtures/sample_spec.json` — a reference spec showing every field filled. Useful as a structural example; do not copy its prose verbatim.
+- `scripts/render_pdf.py` — entry point; validate spec → render mockups → build Rmd → compile PDFs.
+- `scripts/build_rmd.py` — Jinja2-renders the three Rmd files (+ shared `.tex` includes) under `<out>/_build/`.
+- `scripts/template_rewriter.py` — spec schema, validator, code-section builder (including 3200-line floor padding).
+- `scripts/render_mockups.py` — 16-image renderer (architecture diagram driven by `spec.architecture.layers`).
+- `scripts/smoke_test.py` — CI smoke test; uses `assets/fixtures/sample_spec.json` as a stand-in.
+- `templates/rmd/preamble.tex` — shared LaTeX preamble: fonts, listings, fancyhdr, hyperref, geometry, captions.
+- `templates/rmd/cover.tex.j2` / `header.tex.j2` — per-document Jinja includes for title page and page header.
+- `templates/rmd/{application,manual,code}.Rmd.j2` — Rmd Jinja templates.
+- `assets/fixtures/sample_spec.json` — a reference spec showing every field filled. Use as a structural example only.
 - `references/requirements.md` — formal 软著 review notes (read only when the user asks about compliance / 审查风险).
 
 ## Practical Notes

@@ -1,0 +1,70 @@
+---
+title: "基于Java&Vue的{{ software_name }} {{ version }} 操作手册"
+documentclass: ctexart
+classoption:
+  - 10.5pt
+  - a4paper
+output:
+  pdf_document:
+    latex_engine: xelatex
+    toc: true
+    toc_depth: 3
+    number_sections: true
+    keep_tex: false
+    includes:
+      in_header:
+        - preamble.tex
+        - header.tex
+      before_body: cover.tex
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+```
+
+# 软件简介
+
+{{ intro }}
+
+\clearpage
+
+# 业务流程与使用说明
+
+## 系统架构与整体业务流程
+
+{{ architecture_description }}
+
+```{r arch-image, fig.cap="图 2-1 系统架构图", out.width="100%", fig.align="center"}
+knitr::include_graphics("{{ mockups_dir }}/image1.png")
+```
+
+{{ flow_text }}
+
+\clearpage
+
+## 功能模块说明
+
+{% for module in modules %}
+{% if not loop.first %}\clearpage{% endif %}
+
+### {{ module.title }}
+
+{{ module.summary }}
+
+**操作步骤：**
+
+{% for group in module.groups %}
+#### {{ group.title }}
+
+{% for step in group.steps %}({{ loop.index }}) {{ step }}
+
+{% endfor %}
+{% endfor %}
+
+{% for figure in module.figures %}
+```{r fig-{{ module.slug }}-{{ loop.index }}, fig.cap="图 2-{{ module.figure_caption_index }}-{{ loop.index }} {{ figure.label }}", out.width="100%", fig.align="center"}
+knitr::include_graphics("{{ mockups_dir }}/{{ figure.filename }}")
+```
+
+{% endfor %}
+{% endfor %}

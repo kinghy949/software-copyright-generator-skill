@@ -16,16 +16,37 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install dependencies
+      - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Install pandoc + CJK fonts
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends pandoc fonts-noto-cjk
+
+      - name: Set up R
+        uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: "4.4"
+          use-public-rspm: true
+
+      - name: Install R packages
+        run: |
+          Rscript -e 'install.packages(c("rmarkdown","knitr","tinytex"), repos="https://cloud.r-project.org")'
+
+      - name: Install TinyTeX
+        run: |
+          Rscript -e 'tinytex::install_tinytex(force = TRUE)'
+          echo "$HOME/.TinyTeX/bin/x86_64-linux" >> $GITHUB_PATH
+
       - name: Compile scripts
         run: |
-          python -m py_compile scripts/render_bundle.py
+          python -m py_compile scripts/render_pdf.py
           python -m py_compile scripts/render_mockups.py
           python -m py_compile scripts/template_rewriter.py
+          python -m py_compile scripts/build_rmd.py
           python -m py_compile scripts/smoke_test.py
 
       - name: Run smoke test

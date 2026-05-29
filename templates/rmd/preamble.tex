@@ -1,0 +1,84 @@
+% Shared LaTeX preamble for all three documents.
+% Rendered via xelatex with the ctexart document class.
+
+\usepackage{fancyhdr}
+\usepackage{fontspec}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{graphicx}
+\usepackage{caption}
+\usepackage{geometry}
+\usepackage{titlesec}
+\usepackage{hyperref}
+
+\geometry{a4paper, left=2.5cm, right=2.5cm, top=2.5cm, bottom=2.5cm}
+
+% Force black on everything.
+\color{black}
+\hypersetup{colorlinks=true, linkcolor=black, urlcolor=black, citecolor=black}
+
+% Latin font: Times New Roman if available, otherwise the LaTeX default
+% Times Roman clone (TeX Gyre Termes) so missing-font does not abort the build.
+\IfFontExistsTF{Times New Roman}{
+  \setmainfont{Times New Roman}
+  \setmonofont{Times New Roman}
+}{
+  \setmainfont{TeX Gyre Termes}
+  \setmonofont{TeX Gyre Termes}
+}
+
+% CJK main font: prefer 宋体 (Windows SimSun); fall back to PingFang (macOS)
+% then Noto Serif CJK (Linux). ctexart sets up xeCJK so we just override the main.
+\IfFontExistsTF{SimSun}{
+  \setCJKmainfont{SimSun}
+}{
+  \IfFontExistsTF{Songti SC}{
+    \setCJKmainfont{Songti SC}
+  }{
+    \IfFontExistsTF{Noto Serif CJK SC}{
+      \setCJKmainfont{Noto Serif CJK SC}
+    }{
+      \IfFontExistsTF{PingFang SC}{\setCJKmainfont{PingFang SC}}{}
+    }
+  }
+}
+
+% 五号 ≈ 10.5pt. We set the document at 10.5pt via ctexart class option,
+% so this preamble only handles per-environment sizes.
+
+% Page header / footer.
+\pagestyle{fancy}
+\setlength{\headheight}{14pt}
+\fancyhf{}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0pt}
+\fancyfoot[C]{\thepage}
+
+% Listings (code blocks): all-black, framed, line-numbered, no syntax color.
+\lstset{
+  basicstyle=\ttfamily\small\color{black},
+  keywordstyle=\bfseries\color{black},
+  commentstyle=\color{black},
+  stringstyle=\color{black},
+  numbers=left,
+  numberstyle=\tiny\color{black},
+  numbersep=8pt,
+  frame=single,
+  rulecolor=\color{black},
+  breaklines=true,
+  breakatwhitespace=false,
+  keepspaces=true,
+  showstringspaces=false,
+  columns=fullflexible,
+  upquote=true,
+  tabsize=4,
+  framesep=4pt
+}
+
+% Chinese caption labels.
+\captionsetup{labelsep=quad}
+\renewcommand{\figurename}{图}
+\renewcommand{\tablename}{表}

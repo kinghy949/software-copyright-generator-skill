@@ -1,0 +1,51 @@
+---
+title: "基于SpringBoot的{{ software_name }} {{ version }} 申请表"
+documentclass: ctexart
+classoption:
+  - 10.5pt
+  - a4paper
+output:
+  pdf_document:
+    latex_engine: xelatex
+    number_sections: false
+    keep_tex: false
+    includes:
+      in_header:
+        - preamble.tex
+        - header.tex
+      before_body: cover.tex
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+```
+
+# 软件基本信息
+
+\begin{longtable}{|>{\bfseries}p{3.5cm}|p{12cm}|}
+\hline
+项目 & 内容 \\
+\hline
+\endhead
+{% for row in basic_rows %}{{ row[0] }} & {{ row[1] }} \\ \hline
+{% endfor %}\end{longtable}
+
+# 软件属性
+
+\begin{longtable}{|>{\bfseries}p{3.5cm}|p{12cm}|}
+\hline
+项目 & 内容 \\
+\hline
+\endhead
+{% for row in attr_rows %}{{ row[0] }} & {{ row[1] }} \\ \hline
+{% endfor %}\end{longtable}
+
+# 技术与功能
+
+\begin{longtable}{|>{\bfseries}p{3.5cm}|p{12cm}|}
+\hline
+项目 & 内容 \\
+\hline
+\endhead
+{% for row in tech_rows %}{{ row[0] }} & {{ row[1] }} \\ \hline
+{% endfor %}\end{longtable}

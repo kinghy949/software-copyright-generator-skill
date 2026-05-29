@@ -195,46 +195,6 @@ def build_image_plan(spec: dict) -> list[dict]:
     return plan
 
 
-def _toc_line(title: str, page: int, indent: int = 0) -> str:
-    prefix = "    " * indent
-    dot_count = max(3, 48 - len(prefix) - len(title) - len(str(page)))
-    return f"{prefix}{title} {'.' * dot_count} {page}"
-
-
-def build_manual_sequence(spec: dict) -> list[str]:
-    modules = spec["modules"]
-    module_pages = [5, 7, 9, 12, 15, 17]
-    texts = [
-        "操作手册",
-        f"基于Java&Vue的{spec['software_name']} {spec['version']}",
-        "目录",
-        _toc_line("一、软件简介", 3),
-        _toc_line("二、业务流程与使用说明", 4),
-        _toc_line("2.1 系统架构与整体业务流程", 4, indent=1),
-        _toc_line("2.2 功能模块说明", 5, indent=1),
-    ]
-    for module, page in zip(modules, module_pages):
-        texts.append(_toc_line(f"2.2.{module['index']} {module['title']}", page, indent=2))
-    texts.extend([
-        "一、软件简介",
-        spec["intro"],
-        "二、业务流程与使用说明",
-        "2.1 系统架构与整体业务流程",
-        spec["architecture"]["description"],
-        spec["flow_text"],
-        "2.2 功能模块说明",
-    ])
-    for module in modules:
-        texts.append(f"2.2.{module['index']} {module['title']}")
-        texts.append(module["summary"])
-        texts.append("操作步骤：")
-        for g_idx, group in enumerate(module["groups"], start=1):
-            texts.append(f"2.2.{module['index']}.{g_idx} {group['title']}")
-            for s_idx, step in enumerate(group["steps"], start=1):
-                texts.append(f"（{s_idx}）{step}")
-    return texts
-
-
 def _split_snippet_lines(snippet: str) -> list[str]:
     """Normalize line endings, drop trailing blank lines, return list of lines."""
     lines = snippet.replace("\r\n", "\n").replace("\r", "\n").split("\n")
@@ -243,10 +203,8 @@ def _split_snippet_lines(snippet: str) -> list[str]:
     return lines
 
 
-def build_code_lines(spec: dict, min_non_empty_lines: int = 3200) -> list[str]:
-    pkg = spec["package_name"]
-    prefix = spec["class_prefix"]
-    lines: list[str] = [
+def _bootstrap_lines(pkg: str, prefix: str) -> list[str]:
+    return [
         f"package {pkg};",
         "",
         "import org.springframework.boot.SpringApplication;",
@@ -258,37 +216,88 @@ def build_code_lines(spec: dict, min_non_empty_lines: int = 3200) -> list[str]:
         f"        SpringApplication.run({prefix}Application.class, args);",
         "    }",
         "}",
-        "",
     ]
 
-    for module in spec["modules"]:
-        lines.append(f"// ===== Module: {module['title']} =====")
-        lines.append("")
-        for snippet in module["code_snippets"]:
-            lines.extend(_split_snippet_lines(snippet))
-            lines.append("")
 
+def _support_class_lines(pkg: str, prefix: str, index: int) -> list[str]:
+    return [
+        f"package {pkg}.support;",
+        "",
+        "import java.util.ArrayList;",
+        "import java.util.List;",
+        "",
+        f"public class {prefix}Support{index:03d} {{",
+        "    private final List<String> logs = new ArrayList<>();",
+        "    public void append(String message) { logs.add(message); }",
+        "    public List<String> snapshot() { return new ArrayList<>(logs); }",
+        "    public boolean contains(String keyword) {",
+        "        return logs.stream().anyMatch(item -> item.contains(keyword));",
+        "    }",
+        "    public String exportText() { return String.join(\"\\n\", logs); }",
+        "}",
+    ]
+
+
+def _count_non_empty(*sections: list[str]) -> int:
+    total = 0
+    for section in sections:
+        total += sum(1 for line in section if line.strip())
+    return total
+
+
+def build_code_sections(spec: dict, min_non_empty_lines: int = 3200) -> dict:
+    """Build per-section code line lists for embedding into code.Rmd.
+
+    Returns:
+        {
+            "bootstrap": [str, ...],
+            "modules": [{"title": str, "lines": [str, ...]}, ...],
+            "support": [str, ...],
+        }
+    """
+    pkg = spec["package_name"]
+    prefix = spec["class_prefix"]
+
+    bootstrap = _bootstrap_lines(pkg, prefix)
+
+    module_sections: list[dict] = []
+    for module in spec["modules"]:
+        lines: list[str] = []
+        for snippet_idx, snippet in enumerate(module["code_snippets"]):
+            if snippet_idx > 0:
+                lines.append("")
+            lines.extend(_split_snippet_lines(snippet))
+        module_sections.append({"title": module["title"], "lines": lines})
+
+    support: list[str] = []
     support_index = 1
-    while sum(1 for line in lines if line.strip()) < min_non_empty_lines:
-        lines.extend([
-            f"package {pkg}.support;",
-            "",
-            "import java.util.ArrayList;",
-            "import java.util.List;",
-            "",
-            f"public class {prefix}Support{support_index:03d} {{",
-            "    private final List<String> logs = new ArrayList<>();",
-            "    public void append(String message) { logs.add(message); }",
-            "    public List<String> snapshot() { return new ArrayList<>(logs); }",
-            "    public boolean contains(String keyword) {",
-            "        return logs.stream().anyMatch(item -> item.contains(keyword));",
-            "    }",
-            "    public String exportText() { return String.join(\"\\n\", logs); }",
-            "}",
-            "",
-        ])
+    module_line_lists = [section["lines"] for section in module_sections]
+    while _count_non_empty(bootstrap, *module_line_lists, support) < min_non_empty_lines:
+        if support:
+            support.append("")
+        support.extend(_support_class_lines(pkg, prefix, support_index))
         support_index += 1
-    return lines
+
+    return {
+        "bootstrap": bootstrap,
+        "modules": module_sections,
+        "support": support,
+    }
+
+
+def build_code_lines(spec: dict, min_non_empty_lines: int = 3200) -> list[str]:
+    """Flat list view of build_code_sections; kept for smoke tests and quick counts."""
+    sections = build_code_sections(spec, min_non_empty_lines)
+    out: list[str] = list(sections["bootstrap"])
+    for module in sections["modules"]:
+        out.append("")
+        out.append(f"// ===== Module: {module['title']} =====")
+        out.append("")
+        out.extend(module["lines"])
+    if sections["support"]:
+        out.append("")
+        out.extend(sections["support"])
+    return out
 
 
 def load_spec(path: Path) -> dict:
