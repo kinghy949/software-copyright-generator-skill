@@ -191,7 +191,7 @@ def build_spec(software_name: str, intro: str, version: str = "V1.0") -> dict:
             "languages": "Java, HTML, CSS, JavaScript, TypeScript, SQL, XML",
         },
         "image_plan": [
-            {"filename": "image1.png", "scene": "overview-flow", "label": "整体业务流程"},
+            {"filename": "image1.png", "scene": "overview-flow", "label": "系统架构图"},
             {"filename": "image2.jpeg", "scene": "overview-home", "label": modules[0]["title"]},
             {"filename": "image3.jpeg", "scene": "overview-focus", "label": f"{modules[0]['title']}详情"},
             {"filename": "image4.jpeg", "scene": "record-edit", "label": modules[1]["title"]},
@@ -223,11 +223,17 @@ def build_manual_sequence(spec: dict) -> list[str]:
         "操作手册", f"基于Java&Vue的{spec['software_name']} {spec['version']}", "目录",
         toc_line("一、软件简介", 3),
         toc_line("二、业务流程与使用说明", 4),
-        toc_line("2.1 整体业务流程", 4, indent=1),
+        toc_line("2.1 系统架构与整体业务流程", 4, indent=1),
         toc_line("2.2 功能模块说明", 5, indent=1),
     ]
     texts.extend([toc_line(f"2.2.{m['index']} {m['title']}", m['toc_page'], indent=2) for m in modules])
-    texts.extend(["一、软件简介", spec["intro"], "二、业务流程与使用说明", "2.1 整体业务流程", spec["flow_text"], "2.2 功能模块说明"])
+    architecture_text = sentence(
+        "系统采用前后端分离的分层架构：前端基于 Vue 3 与 TypeScript 构建可复用组件，"
+        "通过 Nginx 反向代理与 Spring Boot REST 接口进行通信；后端按业务服务层、"
+        "数据访问层和数据与基础设施层划分，下游统一对接 MySQL 数据库、Redis 缓存、"
+        "文件存储和日志服务，整体结构清晰、职责单一、便于扩展"
+    )
+    texts.extend(["一、软件简介", spec["intro"], "二、业务流程与使用说明", "2.1 系统架构与整体业务流程", architecture_text, spec["flow_text"], "2.2 功能模块说明"])
     line_map = {
         "浏览总览与快捷入口": [
             "用户进入页面后，先查看顶部关键指标卡片与中央内容列表，快速了解当前业务状态和最新数据变化。",

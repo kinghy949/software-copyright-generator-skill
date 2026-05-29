@@ -150,24 +150,70 @@ def draw_chart(draw, box, accent):
         draw.line((left + 40, y, right - 40, y), fill=(241, 245, 249), width=2)
 
 
+def draw_architecture_diagram(draw: ImageDraw.ImageDraw, width: int, height: int, spec: dict, accent: tuple[int, int, int]) -> None:
+    rounded(draw, (60, 60, width - 60, height - 60), fill=(255, 255, 255), radius=32, outline=(226, 232, 240))
+    title = f"{spec['software_name']} 系统架构图"
+    draw.text((100, 90), title, fill=(17, 24, 39), font=load_font(40))
+    draw.text((100, 142), "前后端分离 · 分层架构 · Spring Boot + Vue + MySQL", fill=(100, 116, 139), font=load_font(22))
+
+    accent_light = tuple(min(255, c + 80) for c in accent)
+    accent_dark = tuple(max(0, c - 35) for c in accent)
+    neutral_bg = (248, 250, 252)
+    box_outline = (203, 213, 225)
+
+    layer_x0, layer_x1 = 100, width - 100
+    layer_h = 90
+    layer_gap = 22
+    top_y = 200
+
+    def draw_layer(y: int, title_text: str, items: list[str], header_color):
+        rounded(draw, (layer_x0, y, layer_x1, y + layer_h), fill=neutral_bg, radius=20, outline=box_outline)
+        rounded(draw, (layer_x0, y, layer_x0 + 220, y + layer_h), fill=header_color, radius=20)
+        draw.text((layer_x0 + 28, y + 28), title_text, fill="white", font=load_font(26))
+        usable_left = layer_x0 + 260
+        usable_right = layer_x1 - 30
+        if not items:
+            return
+        cell_w = (usable_right - usable_left - (len(items) - 1) * 16) // len(items)
+        for idx, item in enumerate(items):
+            x0 = usable_left + idx * (cell_w + 16)
+            x1 = x0 + cell_w
+            rounded(draw, (x0, y + 18, x1, y + layer_h - 18), fill=(255, 255, 255), radius=14, outline=box_outline)
+            text_w = draw.textlength(item, font=load_font(22))
+            draw.text((x0 + max(12, (cell_w - text_w) // 2), y + 28), item, fill=(31, 41, 55), font=load_font(22))
+
+    layers = [
+        ("用户层", ["PC 浏览器", "移动端浏览器", "管理后台"], accent),
+        ("前端层", ["Vue 3 + TypeScript", "Vue Router", "Pinia 状态管理", "Element Plus UI"], accent_dark),
+        ("接口层", ["Nginx 反向代理", "Spring Boot REST API", "鉴权与限流过滤器"], accent),
+        ("业务服务层", ["总览服务", "录入服务", "检索服务", "协作服务", "统计服务", "管理服务"], accent_dark),
+        ("数据访问层", ["MyBatis Plus", "事务管理", "数据校验"], accent),
+        ("数据与基础设施", ["MySQL", "Redis 缓存", "文件存储", "日志服务"], accent_dark),
+    ]
+
+    available_height = height - 60 - top_y - 60
+    layer_h = max(70, (available_height - layer_gap * (len(layers) - 1)) // len(layers))
+
+    y = top_y
+    for layer_title, items, header_color in layers:
+        draw_layer(y, layer_title, items, header_color)
+        if y + layer_h + layer_gap < height - 80:
+            arrow_x = (layer_x0 + layer_x1) // 2
+            draw.line((arrow_x, y + layer_h + 2, arrow_x, y + layer_h + layer_gap - 2), fill=accent, width=4)
+            draw.polygon(
+                [(arrow_x - 8, y + layer_h + layer_gap - 6), (arrow_x + 8, y + layer_h + layer_gap - 6), (arrow_x, y + layer_h + layer_gap + 4)],
+                fill=accent,
+            )
+        y += layer_h + layer_gap
+
+
 def draw_scene(image: Image.Image, spec: dict, scene: str, label: str):
     draw = ImageDraw.Draw(image)
     accent = theme_color(spec["software_name"])
     width, height = image.size
     draw.rectangle((0, 0, width, height), fill=(237, 242, 247))
     if scene == "overview-flow":
-        rounded(draw, (80, 80, width - 80, height - 80), fill=(255, 255, 255), radius=36, outline=(226, 232, 240))
-        draw.text((120, 120), f"{spec['software_name']} 业务流程概览", fill=(17, 24, 39), font=load_font(44))
-        steps = ["首页总览", "信息录入", "智能检索", "互动协作", "数据统计", "业务管理"]
-        step_w = (width - 300) // len(steps)
-        for idx, step in enumerate(steps):
-            x0 = 120 + idx * step_w
-            x1 = x0 + step_w - 40
-            rounded(draw, (x0, 310, x1, 470), fill=accent if idx % 2 == 0 else (255, 255, 255), radius=28, outline=accent)
-            text_fill = "white" if idx % 2 == 0 else accent
-            draw.text((x0 + 34, 365), step, fill=text_fill, font=load_font(28))
-            if idx < len(steps) - 1:
-                draw.line((x1 + 10, 390, x1 + 50, 390), fill=accent, width=6)
+        draw_architecture_diagram(draw, width, height, spec, accent)
         return
     content_box = draw_browser_frame(draw, width, height, label, accent)
     left, top, right, bottom = content_box
