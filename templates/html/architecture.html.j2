@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>{{ software_name }} · 系统架构图</title>
+<style>
+  :root {
+    --primary: {{ palette.primary }};
+    --primary-dark: {{ palette.primary_dark }};
+    --primary-soft: {{ palette.primary_soft }};
+    --accent: {{ palette.accent }};
+    --bg: {{ palette.bg }};
+    --surface: {{ palette.surface }};
+    --surface-2: {{ palette.surface_2 }};
+    --border: {{ palette.border }};
+    --text: {{ palette.text }};
+    --text-muted: {{ palette.text_muted }};
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 40px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "PingFang SC","Microsoft YaHei","Hiragino Sans GB","Noto Sans CJK SC", system-ui, sans-serif;
+  }
+  .frame {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 36px 44px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  }
+  .head { margin-bottom: 28px; }
+  .head h1 { margin: 0 0 6px; font-size: 26px; }
+  .head p  { margin: 0; color: var(--text-muted); font-size: 14px; }
+  .layer {
+    display: flex; align-items: stretch;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 14px;
+    background: var(--surface-2);
+  }
+  .layer .head-cell {
+    flex: 0 0 200px;
+    display: flex; align-items: center; justify-content: center;
+    color: #fff;
+    font-size: 16px; font-weight: 600;
+    padding: 18px 12px;
+    text-align: center;
+  }
+  .layer .head-cell.even { background: var(--primary); }
+  .layer .head-cell.odd  { background: var(--primary-dark); }
+  .layer .body {
+    flex: 1; padding: 16px;
+    display: grid; gap: 10px;
+  }
+  .layer .body .item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+    font-size: 14px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .layer .body .item::before {
+    content: ""; width: 6px; height: 6px;
+    background: var(--primary); border-radius: 50%;
+  }
+  .arrow {
+    text-align: center;
+    color: var(--primary);
+    font-size: 18px; margin: -6px 0 8px;
+  }
+</style>
+</head>
+<body>
+<div class="frame">
+  <div class="head">
+    <h1>{{ software_name }} 系统架构图</h1>
+    <p>{{ subtitle }}</p>
+  </div>
+  {% for layer in layers %}
+  <div class="layer">
+    <div class="head-cell {{ 'even' if loop.index0 % 2 == 0 else 'odd' }}">{{ layer.name }}</div>
+    <div class="body" style="grid-template-columns: repeat({{ layer.components|length }}, 1fr);">
+      {% for comp in layer.components %}
+      <div class="item">{{ comp }}</div>
+      {% endfor %}
+    </div>
+  </div>
+  {% if not loop.last %}<div class="arrow">▼</div>{% endif %}
+  {% endfor %}
+</div>
+</body>
+</html>

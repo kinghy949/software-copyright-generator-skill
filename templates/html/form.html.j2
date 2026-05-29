@@ -1,0 +1,28 @@
+{% extends "base.html.j2" %}
+{% block body %}
+<div class="card">
+  <h3 class="card-title">{{ form_title }}</h3>
+  {% for row in form_rows %}
+  <div class="form-row">
+    {% for field in row %}
+    <div class="field">
+      <label>{% if field.required %}<span class="req">*</span>{% endif %}{{ field.label }}</label>
+      <div class="{{ field.type }} {{ 'focus' if field.focus else '' }}">{{ field.value }}</div>
+      {% if field.hint %}<div class="hint">{{ field.hint }}</div>{% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% endfor %}
+  <div class="form-row">
+    <div class="field">
+      <label>{{ textarea_label }}</label>
+      <div class="textarea">{{ textarea_value }}</div>
+    </div>
+  </div>
+  <div style="display:flex;justify-content:flex-end;gap:10px;padding-top:8px;border-top:1px solid var(--border);">
+    <span class="btn subtle">取消</span>
+    <span class="btn ghost">暂存草稿</span>
+    <span class="btn">提交保存</span>
+  </div>
+</div>
+{% endblock %}

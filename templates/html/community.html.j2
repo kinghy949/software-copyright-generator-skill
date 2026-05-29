@@ -1,0 +1,41 @@
+{% extends "base.html.j2" %}
+{% block body %}
+<div class="grid cols-2" style="grid-template-columns: 2fr 1fr;">
+  <div class="card">
+    <h3 class="card-title">{{ feed_title }}</h3>
+    {% for post in posts %}
+    <div style="display:flex;gap:14px;padding:14px 0;border-bottom:1px solid var(--border);">
+      <div style="width:40px;height:40px;border-radius:50%;background:var(--primary-soft);color:var(--primary-dark);display:flex;align-items:center;justify-content:center;font-weight:600;flex-shrink:0;">
+        {{ post.author[0] }}
+      </div>
+      <div style="flex:1;min-width:0;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+          <b style="font-size:14px;">{{ post.author }}</b>
+          <span class="tag {{ post.tag_type }}">{{ post.tag }}</span>
+          <span style="color:var(--text-muted);font-size:12px;margin-left:auto;">{{ post.time }}</span>
+        </div>
+        <div style="font-size:14px;color:var(--text);margin-bottom:6px;font-weight:500;">{{ post.title }}</div>
+        <div style="color:var(--text-muted);font-size:13px;line-height:1.6;">{{ post.excerpt }}</div>
+        <div style="margin-top:10px;display:flex;gap:18px;color:var(--text-muted);font-size:12px;">
+          <span>💬 {{ post.replies }} 回复</span>
+          <span>👍 {{ post.likes }} 赞</span>
+          <span>🔖 收藏</span>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  <div class="card">
+    <h3 class="card-title">{{ side_title }}</h3>
+    {% for topic in topics %}
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px dashed var(--border);">
+      <span style="font-size:13px;">#{{ loop.index }} {{ topic.name }}</span>
+      <span class="tag neutral">{{ topic.count }}</span>
+    </div>
+    {% endfor %}
+    <div style="margin-top:16px;padding:14px;background:var(--primary-soft);border-radius:6px;font-size:12px;color:var(--primary-dark);">
+      💡 提示：发布前请确认内容遵循社区规范，可附图、@同事 或关联工单。
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,76 @@
+{% extends "base.html.j2" %}
+{% block body %}
+<div class="grid cols-4">
+  {% for kpi in kpis %}
+  <div class="kpi">
+    <div class="label">{{ kpi.label }}</div>
+    <div class="value">{{ kpi.value }}</div>
+    <div class="delta {{ 'down' if kpi.down else '' }}">{{ kpi.delta }}</div>
+    <div class="bar"><i style="width: {{ kpi.bar }}%"></i></div>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="grid cols-2" style="margin-top:16px;">
+  <div class="card">
+    <h3 class="card-title">{{ chart_title }}</h3>
+    <svg viewBox="0 0 480 220" width="100%" height="220" preserveAspectRatio="none">
+      <defs>
+        <linearGradient id="g1" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="var(--primary)" stop-opacity="0.35"/>
+          <stop offset="100%" stop-color="var(--primary)" stop-opacity="0"/>
+        </linearGradient>
+      </defs>
+      {% for y in [40, 80, 120, 160, 200] %}
+      <line x1="40" y1="{{ y }}" x2="470" y2="{{ y }}" stroke="var(--border)" stroke-dasharray="3 4"/>
+      {% endfor %}
+      {% for x in ['周一','周二','周三','周四','周五','周六','周日'] %}
+      <text x="{{ 50 + loop.index0 * 60 }}" y="215" fill="var(--text-muted)" font-size="10">{{ x }}</text>
+      {% endfor %}
+      <path d="{{ chart_area }}" fill="url(#g1)"/>
+      <path d="{{ chart_path }}" fill="none" stroke="var(--primary)" stroke-width="2.5"/>
+      {% for pt in chart_points %}
+      <circle cx="{{ pt.x }}" cy="{{ pt.y }}" r="3.5" fill="var(--primary)"/>
+      {% endfor %}
+    </svg>
+  </div>
+  <div class="card">
+    <h3 class="card-title">{{ side_title }}</h3>
+    <table class="data">
+      <thead><tr><th>分类</th><th>数量</th><th>占比</th></tr></thead>
+      <tbody>
+      {% for row in side_rows %}
+        <tr>
+          <td>{{ row.name }}</td>
+          <td>{{ row.count }}</td>
+          <td>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <div style="flex:1;height:6px;background:var(--surface-2);border-radius:3px;overflow:hidden;">
+                <div style="width:{{ row.pct }}%;height:100%;background:var(--primary);"></div>
+              </div>
+              <span style="font-size:11px;color:var(--text-muted);">{{ row.pct }}%</span>
+            </div>
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card" style="margin-top:16px;">
+  <h3 class="card-title">{{ table_title }}</h3>
+  <table class="data">
+    <thead><tr>{% for h in table_headers %}<th>{{ h }}</th>{% endfor %}</tr></thead>
+    <tbody>
+    {% for row in table_rows %}
+      <tr>
+        {% for cell in row %}
+        <td>{% if cell.tag %}<span class="tag {{ cell.tag }}">{{ cell.text }}</span>{% else %}{{ cell }}{% endif %}</td>
+        {% endfor %}
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

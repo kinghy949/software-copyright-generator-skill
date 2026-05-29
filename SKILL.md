@@ -15,7 +15,7 @@ Workflow for every invocation:
 2. **Write all申请表 / 操作手册 / 代码文档 content yourself** into a fresh `spec.json` that conforms to the schema below. Do not reuse content from previous runs verbatim — vary the wording, module names that are appropriate to the system, code identifiers, and architecture layers each time. Two invocations with the same inputs should produce visibly different content.
 3. Run `scripts/render_pdf.py --spec spec.json --output-dir <out>`. The script will:
    - validate the spec (and exit with a clear error if anything is wrong) before invoking R
-   - render 16 mockup images (including the architecture diagram from your spec)
+   - render 16 mockup images by rendering Jinja HTML templates (under `templates/html/`) and screenshotting them via headless Chromium (Playwright); all 16 images share one palette derived from `software_name`
    - build three R Markdown files (`application.Rmd`, `manual.Rmd`, `code.Rmd`) under `<out>/_build/`
    - call `Rscript -e 'rmarkdown::render(...)'` per document to compile each into a PDF via xelatex
    - copy the PDFs to `<out>/` with friendly names
@@ -119,7 +119,8 @@ You do not need to set these — the LaTeX preamble (`templates/rmd/preamble.tex
 
 The host machine must have:
 
-- Python 3.12+ with `Pillow`, `Jinja2`, `pikepdf` (see `requirements.txt`)
+- Python 3.12+ with `Jinja2`, `pikepdf`, `playwright` (see `requirements.txt`)
+- Playwright Chromium browser: `playwright install chromium` (one-time, ~150 MB)
 - R 4.x with packages `rmarkdown`, `knitr`, `tinytex`
 - TinyTeX (`tinytex::install_tinytex()`) — provides `xelatex` and auto-installs missing LaTeX packages on first use
 - pandoc ≥ 2 (system package, or shipped with RStudio)
@@ -162,7 +163,8 @@ The render output directory contains:
 - `scripts/render_pdf.py` — entry point; validate spec → render mockups → build Rmd → compile PDFs.
 - `scripts/build_rmd.py` — Jinja2-renders the three Rmd files (+ shared `.tex` includes) under `<out>/_build/`.
 - `scripts/template_rewriter.py` — spec schema, validator, code-section builder (including 3200-line floor padding).
-- `scripts/render_mockups.py` — 16-image renderer (architecture diagram driven by `spec.architecture.layers`).
+- `scripts/render_mockups.py` — 16-image renderer: derives one palette from `software_name`, picks a Jinja HTML template per scene (`templates/html/*.html.j2`), and screenshots each via Playwright Chromium. The rendered HTML for each image is preserved under `<out>/mockups/_html/` for debugging.
+- `templates/html/` — `base.html.j2` (shared layout with sidebar/topbar/palette variables) + per-scene templates (`architecture`, `dashboard`, `list`, `form`, `success`, `search`, `community`). Scene→template mapping lives in `render_mockups.SCENE_TEMPLATE`.
 - `scripts/smoke_test.py` — CI smoke test; uses `assets/fixtures/sample_spec.json` as a stand-in.
 - `templates/rmd/preamble.tex` — shared LaTeX preamble: fonts, listings, fancyhdr, hyperref, geometry, captions.
 - `templates/rmd/cover.tex.j2` / `header.tex.j2` — per-document Jinja includes for title page and page header.

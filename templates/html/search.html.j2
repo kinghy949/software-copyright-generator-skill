@@ -1,0 +1,37 @@
+{% extends "base.html.j2" %}
+{% block body %}
+<div class="card">
+  <h3 class="card-title">{{ search_title }}</h3>
+  <div style="display:flex;gap:10px;align-items:center;margin-bottom:14px;">
+    <div class="field" style="flex:1;">
+      <div class="input focus">🔍 &nbsp; {{ search_query }}</div>
+    </div>
+    <span class="btn">立即检索</span>
+    <span class="btn ghost">重置</span>
+  </div>
+  <div class="form-row" style="margin-bottom:0;">
+    {% for f in advanced %}
+    <div class="field">
+      <label>{{ f.label }}</label>
+      <div class="select">{{ f.value }} ▾</div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+<div class="card" style="margin-top:16px;">
+  <h3 class="card-title">检索结果（{{ total }} 条）</h3>
+  <table class="data">
+    <thead><tr>{% for h in table_headers %}<th>{{ h }}</th>{% endfor %}<th>操作</th></tr></thead>
+    <tbody>
+    {% for row in table_rows %}
+      <tr>
+        {% for cell in row %}
+        <td>{% if cell.tag %}<span class="tag {{ cell.tag }}">{{ cell.text }}</span>{% else %}{{ cell }}{% endif %}</td>
+        {% endfor %}
+        <td style="color:var(--primary);">查看</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
