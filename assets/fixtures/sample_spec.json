@@ -1,0 +1,201 @@
+{
+  "schema_version": "1.0",
+  "software_name": "校园志愿服务管理平台",
+  "version": "V1.0",
+  "subject": "校园志愿",
+  "industry": "教育信息化",
+  "target_users": "高校师生及校内管理人员",
+  "intro": "面向高校的志愿活动管理 Web 系统，支持活动发布、报名审核、信息录入、查询统计、互动交流和后台管理，覆盖校内志愿组织的全过程数字化协作。",
+  "purpose": "提升校园志愿活动的组织效率，规范数据录入、查询与统计协同。",
+  "main_features": "本软件面向教育信息化领域的高校师生与校内管理人员，围绕校园志愿活动构建统一的数字化处理与协同管理入口，在功能层面覆盖首页总览、活动信息录入、志愿者智能检索、社区互动协作、后台数据统计与业务管理六大核心模块，形成从活动发布、报名审核、信息维护、查询定位、过程协作到数据分析的完整闭环。首页总览模块通过卡片化与可视化方式集中展示在办活动、待审报名、近期评价和最新动态等关键指标，用户登录后即可在统一界面把握平台运行态势，并通过快捷入口直接跳转到相应业务页。活动信息录入模块面向志愿活动提供结构化表单与附件上传能力，录入过程同步进行必填校验、格式校验与状态回显，保证数据规范完整，并自动生成活动编号方便后续追踪。志愿者智能检索模块支持关键词搜索、联想提示、专业分类筛选、报名时间范围过滤与多字段排序，帮助管理员在大量志愿者档案中快速定位目标记录。社区互动协作模块以主题发布、详情查看、评论回复和楼层跟进为主线，支持师生围绕活动问题进行交流反馈与经验共享，系统对协作过程进行留痕和状态追踪。后台数据统计模块面向管理员构建数据大屏，通过指标卡片、折线图、柱状图和饼图展示活动规模、参与分布和趋势变化，支持时间维度切换与指标联动分析。业务管理模块统一维护活动条目，覆盖新建、编辑、上下架、归档与状态流转，配合权限控制与操作日志，确保业务数据的稳定性、可追溯性与长期可维护性。",
+  "technical_highlights": "平台采用 Spring Boot 与 Vue 的前后端分离架构，模块边界清晰，数据访问稳定，界面响应良好，并通过分层校验机制保障录入数据的规范性。",
+  "flow_text": "用户登录系统后，先在校园志愿总览首页查看核心指标和待办入口，再进入活动信息录入模块维护数据，通过智能检索快速定位目标志愿者，并在社区互动模块完成反馈交流和处理跟进；后台管理人员进一步使用数据统计页面查看整体运行情况，并在业务管理模块中完成创建、编辑和归档操作。",
+  "architecture": {
+    "description": "系统采用前后端分离的分层架构：前端基于 Vue 3 与 TypeScript 构建可复用组件，通过 Nginx 反向代理与 Spring Boot REST 接口通信；后端按业务服务层、数据访问层和数据与基础设施层划分，下游统一对接 MySQL 数据库、Redis 缓存、文件存储和日志服务，整体结构清晰、职责单一、便于扩展。",
+    "subtitle": "前后端分离 · 分层架构 · Spring Boot + Vue + MySQL",
+    "layers": [
+      {"name": "用户层", "components": ["PC 浏览器", "移动端浏览器", "管理后台"]},
+      {"name": "前端层", "components": ["Vue 3 + TypeScript", "Vue Router", "Pinia 状态管理", "Element Plus UI"]},
+      {"name": "接口层", "components": ["Nginx 反向代理", "Spring Boot REST API", "鉴权与限流过滤器"]},
+      {"name": "业务服务层", "components": ["总览服务", "录入服务", "检索服务", "协作服务", "统计服务", "管理服务"]},
+      {"name": "数据访问层", "components": ["MyBatis Plus", "事务管理", "数据校验"]},
+      {"name": "数据与基础设施", "components": ["MySQL", "Redis 缓存", "文件存储", "日志服务"]}
+    ]
+  },
+  "modules": [
+    {
+      "title": "校园志愿总览首页",
+      "summary": "该页面作为校园志愿业务的统一入口，集中展示在办活动、待审报名、最新动态与快捷操作区，通过卡片式布局和状态标签帮助用户快速掌握系统核心信息。",
+      "groups": [
+        {
+          "title": "浏览总览与快捷入口",
+          "steps": [
+            "用户进入首页后查看顶部活动指标卡片和中央内容列表，了解当前业务状态和最新动态。",
+            "用户点击页面中的快捷入口按钮后，界面立即跳转至对应功能模块。"
+          ]
+        },
+        {
+          "title": "查看重点活动",
+          "steps": [
+            "用户在推荐区域点击某条重点活动后，右侧详情面板即时展开。",
+            "用户根据提示继续执行查看、收藏或进入详情等操作，系统同步更新浏览状态。"
+          ]
+        }
+      ],
+      "code_snippets": [
+        "package com.demo.volunteer.portal;\n\nimport java.time.LocalDateTime;\n\npublic class PortalSummaryEntity {\n    private Long id;\n    private String code;\n    private String name;\n    private String category;\n    private String status;\n    private String owner;\n    private String description;\n    private LocalDateTime createdAt;\n    private LocalDateTime updatedAt;\n\n    public Long getId() { return id; }\n    public void setId(Long id) { this.id = id; }\n    public String getCode() { return code; }\n    public void setCode(String code) { this.code = code; }\n    public String getName() { return name; }\n    public void setName(String name) { this.name = name; }\n    public String getCategory() { return category; }\n    public void setCategory(String category) { this.category = category; }\n    public String getStatus() { return status; }\n    public void setStatus(String status) { this.status = status; }\n    public String getOwner() { return owner; }\n    public void setOwner(String owner) { this.owner = owner; }\n    public String getDescription() { return description; }\n    public void setDescription(String description) { this.description = description; }\n    public LocalDateTime getCreatedAt() { return createdAt; }\n    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }\n    public LocalDateTime getUpdatedAt() { return updatedAt; }\n    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }\n}",
+        "package com.demo.volunteer.portal;\n\nimport java.util.ArrayList;\nimport java.util.List;\n\npublic class PortalSummaryService {\n    private final List<PortalSummaryEntity> repository = new ArrayList<>();\n\n    public List<PortalSummaryEntity> recent(int limit) {\n        List<PortalSummaryEntity> rows = new ArrayList<>();\n        for (int i = 0; i < limit; i++) {\n            PortalSummaryEntity entity = new PortalSummaryEntity();\n            entity.setId((long) i);\n            entity.setCode(\"PORTAL-\" + i);\n            entity.setName(\"志愿活动\" + i);\n            entity.setStatus(\"ACTIVE\");\n            rows.add(entity);\n        }\n        return rows;\n    }\n\n    public PortalSummaryEntity detail(Long id) {\n        PortalSummaryEntity entity = new PortalSummaryEntity();\n        entity.setId(id);\n        entity.setName(\"志愿活动详情\");\n        return entity;\n    }\n}",
+        "<template>\n  <div class=\"portal-page\">\n    <el-row :gutter=\"16\">\n      <el-col :span=\"8\"><el-card>在办活动 {{ summary.active }}</el-card></el-col>\n      <el-col :span=\"8\"><el-card>待审报名 {{ summary.pending }}</el-card></el-col>\n      <el-col :span=\"8\"><el-card>本周新增 {{ summary.created }}</el-card></el-col>\n    </el-row>\n    <el-table :data=\"rows\">\n      <el-table-column prop=\"code\" label=\"编号\" />\n      <el-table-column prop=\"name\" label=\"活动\" />\n      <el-table-column prop=\"status\" label=\"状态\" />\n    </el-table>\n  </div>\n</template>\n\n<script setup lang=\"ts\">\nimport { ref, onMounted } from 'vue';\ninterface SummaryRow { code: string; name: string; status: string; }\nconst rows = ref<SummaryRow[]>([]);\nconst summary = ref({ active: 0, pending: 0, created: 0 });\nasync function load(): Promise<void> {\n  rows.value = [];\n  summary.value = { active: 12, pending: 4, created: 8 };\n}\nonMounted(load);\n</script>",
+        "-- portal summary table\nCREATE TABLE IF NOT EXISTS tb_volunteer_portal_summary (\n    id BIGINT PRIMARY KEY AUTO_INCREMENT,\n    code VARCHAR(64),\n    name VARCHAR(128),\n    category VARCHAR(64),\n    status VARCHAR(32),\n    owner VARCHAR(64),\n    description TEXT,\n    created_at DATETIME,\n    updated_at DATETIME\n);"
+      ]
+    },
+    {
+      "title": "活动信息录入",
+      "summary": "活动信息录入模块用于维护志愿活动基础信息，界面由表单区、附件区和实时校验提示区组成，通过结构化字段和即时反馈机制保障数据的规范性与完整性。",
+      "groups": [
+        {
+          "title": "填写活动基础信息",
+          "steps": [
+            "用户点击录入按钮进入编辑界面，在表单中依次填写名称、分类、时间和描述等字段。",
+            "用户输入过程中系统同步执行必填项检查与格式校验，并以高亮提示反馈填写状态。",
+            "用户在附件区域上传图片或文档，系统在右侧立即生成对应预览。"
+          ]
+        },
+        {
+          "title": "提交保存与状态回显",
+          "steps": [
+            "用户点击保存按钮提交后，系统完成字段校验、编号生成和状态记录，并显示加载动画。",
+            "校验通过后页面弹出保存成功提示，并将记录同步写入列表区域。",
+            "若存在缺失字段或格式异常，系统在对应输入项下方即时标记问题位置。"
+          ]
+        }
+      ],
+      "code_snippets": [
+        "package com.demo.volunteer.record;\n\nimport java.time.LocalDateTime;\n\npublic class RecordEntity {\n    private Long id;\n    private String code;\n    private String name;\n    private String category;\n    private String status;\n    private String owner;\n    private String description;\n    private LocalDateTime createdAt;\n    private LocalDateTime updatedAt;\n}",
+        "package com.demo.volunteer.record;\n\nimport java.util.ArrayList;\nimport java.util.List;\n\npublic class RecordService {\n    private final List<RecordEntity> repository = new ArrayList<>();\n    public RecordEntity create(RecordEntity request) {\n        repository.add(request);\n        return request;\n    }\n    public RecordEntity update(Long id, RecordEntity request) {\n        return request;\n    }\n    public RecordEntity detail(Long id) { return new RecordEntity(); }\n    public List<RecordEntity> list() { return new ArrayList<>(repository); }\n}",
+        "<template>\n  <el-form :model=\"form\" label-width=\"100px\">\n    <el-form-item label=\"名称\"><el-input v-model=\"form.name\" /></el-form-item>\n    <el-form-item label=\"分类\"><el-select v-model=\"form.category\"><el-option value=\"教育\" label=\"教育\" /></el-select></el-form-item>\n    <el-form-item label=\"时间\"><el-date-picker v-model=\"form.time\" /></el-form-item>\n    <el-form-item label=\"描述\"><el-input type=\"textarea\" v-model=\"form.description\" /></el-form-item>\n    <el-button type=\"primary\" @click=\"save\">保存</el-button>\n  </el-form>\n</template>\n\n<script setup lang=\"ts\">\nimport { reactive } from 'vue';\nconst form = reactive({ name: '', category: '', time: '', description: '' });\nfunction save(): void {\n  console.log(form);\n}\n</script>"
+      ]
+    },
+    {
+      "title": "志愿者智能检索",
+      "summary": "志愿者智能检索模块提供多条件检索能力，支持关键词搜索、专业分类筛选、报名时间过滤和结果排序，便于在大量志愿者档案中快速定位目标。",
+      "groups": [
+        {
+          "title": "输入检索条件",
+          "steps": [
+            "用户将光标置于顶部搜索框，输入志愿者姓名、学号或专业等关键词。",
+            "系统在下拉区域实时展示联想词条和最近搜索记录。"
+          ]
+        },
+        {
+          "title": "执行搜索并查看结果",
+          "steps": [
+            "用户按下回车键或点击搜索按钮，结果列表立即刷新展示符合条件的志愿者。",
+            "用户点击任意结果卡片，系统在详情面板中展开该志愿者的完整档案。"
+          ]
+        }
+      ],
+      "code_snippets": [
+        "package com.demo.volunteer.search;\n\nimport java.util.ArrayList;\nimport java.util.List;\n\npublic class SearchService {\n    public List<String> search(String keyword) {\n        List<String> rows = new ArrayList<>();\n        for (int i = 0; i < 10; i++) {\n            rows.add(keyword + \"-候选\" + i);\n        }\n        return rows;\n    }\n}",
+        "<template>\n  <el-input v-model=\"keyword\" placeholder=\"输入志愿者姓名或学号\" />\n  <el-button @click=\"run\">检索</el-button>\n  <el-table :data=\"rows\"><el-table-column prop=\"name\" label=\"姓名\" /></el-table>\n</template>\n\n<script setup lang=\"ts\">\nimport { ref } from 'vue';\nconst keyword = ref('');\nconst rows = ref<Array<{ name: string }>>([]);\nfunction run(): void { rows.value = [{ name: keyword.value }]; }\n</script>"
+      ]
+    },
+    {
+      "title": "社区互动协作",
+      "summary": "社区互动协作模块围绕志愿活动交流反馈、经验共享和协同处理，采用列表与详情联动的交互方式，提升用户之间的信息协作效率。",
+      "groups": [
+        {
+          "title": "发布协作内容",
+          "steps": [
+            "用户在顶部编辑区域输入标题、正文和补充说明，可上传图片或附件。",
+            "用户点击发布按钮后，系统将新内容即时插入列表顶部。"
+          ]
+        },
+        {
+          "title": "查看详情与发表评论",
+          "steps": [
+            "用户在列表中选择某条主题，详情面板显示完整正文和历史评论。",
+            "用户在评论框输入反馈意见后点击提交，系统实时追加评论。"
+          ]
+        }
+      ],
+      "code_snippets": [
+        "package com.demo.volunteer.community;\n\nimport java.util.ArrayList;\nimport java.util.List;\n\npublic class CommunityService {\n    private final List<String> topics = new ArrayList<>();\n    public void publish(String title) { topics.add(title); }\n    public List<String> list() { return new ArrayList<>(topics); }\n}",
+        "<template>\n  <el-input v-model=\"title\" placeholder=\"主题标题\" />\n  <el-button @click=\"publish\">发布</el-button>\n  <el-card v-for=\"item in topics\" :key=\"item\">{{ item }}</el-card>\n</template>\n\n<script setup lang=\"ts\">\nimport { ref } from 'vue';\nconst title = ref('');\nconst topics = ref<string[]>([]);\nfunction publish(): void { topics.value.push(title.value); title.value = ''; }\n</script>"
+      ]
+    },
+    {
+      "title": "后台数据统计",
+      "summary": "后台数据统计模块面向管理员展示志愿活动整体运行态势，通过指标卡片、折线图、柱状图和饼图构建数据大屏，支持时间维度切换与指标联动分析。",
+      "groups": [
+        {
+          "title": "查看总览数据",
+          "steps": [
+            "管理员进入统计页面后，查看顶部指标卡片、中央趋势图以及业务分布概览。",
+            "管理员切换时间范围后，指标和趋势图同步刷新。"
+          ]
+        },
+        {
+          "title": "切换分析维度",
+          "steps": [
+            "管理员点击左侧导航中的不同维度，中央图表平滑切换。",
+            "管理员将鼠标悬停在图表元素上时，系统弹出详细数值与占比信息。"
+          ]
+        }
+      ],
+      "code_snippets": [
+        "package com.demo.volunteer.dashboard;\n\nimport java.util.LinkedHashMap;\nimport java.util.Map;\n\npublic class DashboardService {\n    public Map<String, Integer> summary() {\n        Map<String, Integer> result = new LinkedHashMap<>();\n        result.put(\"active\", 128);\n        result.put(\"pending\", 56);\n        result.put(\"archived\", 32);\n        return result;\n    }\n}",
+        "<template>\n  <div class=\"dashboard\">\n    <el-card v-for=\"(value, key) in summary\" :key=\"key\">{{ key }} {{ value }}</el-card>\n  </div>\n</template>\n\n<script setup lang=\"ts\">\nimport { ref, onMounted } from 'vue';\nconst summary = ref<Record<string, number>>({});\nonMounted(() => { summary.value = { active: 128, pending: 56, archived: 32 }; });\n</script>"
+      ]
+    },
+    {
+      "title": "志愿业务管理",
+      "summary": "志愿业务管理模块统一维护活动条目，支持创建、编辑、上下架、归档等操作，配合权限控制和操作日志确保业务数据稳定可追溯。",
+      "groups": [
+        {
+          "title": "新建活动条目",
+          "steps": [
+            "管理员点击新建按钮，界面切换至编辑模式。",
+            "管理员填写完成后点击保存，系统将新条目加入列表。"
+          ]
+        },
+        {
+          "title": "编辑现有数据",
+          "steps": [
+            "管理员在列表中点击编辑入口，系统加载历史信息。",
+            "管理员修改字段后确认保存，页面立即刷新对应行内容。"
+          ]
+        },
+        {
+          "title": "下架或归档条目",
+          "steps": [
+            "管理员点击下架或归档按钮后，系统弹出确认对话框。",
+            "管理员确认后，条目状态即时变更为禁用或归档。"
+          ]
+        }
+      ],
+      "code_snippets": [
+        "package com.demo.volunteer.manage;\n\nimport java.util.ArrayList;\nimport java.util.List;\n\npublic class ManageService {\n    private final List<String> items = new ArrayList<>();\n    public void create(String name) { items.add(name); }\n    public void archive(int index) { if (index < items.size()) items.remove(index); }\n    public List<String> list() { return new ArrayList<>(items); }\n}",
+        "<template>\n  <el-button type=\"primary\" @click=\"create\">新建</el-button>\n  <el-table :data=\"rows\">\n    <el-table-column prop=\"name\" label=\"名称\" />\n    <el-table-column label=\"操作\"><template #default=\"scope\"><el-button @click=\"archive(scope.$index)\">归档</el-button></template></el-table-column>\n  </el-table>\n</template>\n\n<script setup lang=\"ts\">\nimport { ref } from 'vue';\nconst rows = ref<Array<{ name: string }>>([]);\nfunction create(): void { rows.value.push({ name: '新活动' }); }\nfunction archive(idx: number): void { rows.value.splice(idx, 1); }\n</script>"
+      ]
+    }
+  ],
+  "defaults": {
+    "rights_acquisition": "原始取得",
+    "rights_scope": "全部权利",
+    "software_type": "应用软件",
+    "software_nature": "原创",
+    "development_mode": "单独开发",
+    "publication_status": "未发表",
+    "dev_hardware": "Intel i7-12700H, 16GB RAM",
+    "run_hardware": "Intel i5-12400, 8GB RAM",
+    "dev_os": "Windows 11",
+    "dev_tools": "IntelliJ IDEA, Maven, Git, Node.js",
+    "run_platform": "Windows 10/11, macOS",
+    "support_software": "Java 17, Spring Boot 3, MySQL, Vue 3",
+    "languages": "Java, HTML, CSS, JavaScript, TypeScript, SQL, XML"
+  },
+  "development_date": "2026年05月29日",
+  "package_name": "com.demo.volunteer",
+  "class_prefix": "Volunteer"
+}

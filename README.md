@@ -2,83 +2,90 @@
 
 [![CI](https://github.com/kinghy949/software-copyright-generator/actions/workflows/ci.yml/badge.svg)](https://github.com/kinghy949/software-copyright-generator/actions/workflows/ci.yml)
 
-一个用于生成软著申请三件套的 Codex Skill。
+一个软著三件套（申请表 / 操作手册 / 代码文档）的**结构化组装器**，配合 Claude Code / Codex 使用。
 
 ![Preview](./assets/showcase/preview-collage.jpg)
 
-用户只需要提供：
+## 设计思路
 
-- `系统全名`
-- `系统简介`
+这是一个**职责切分**的 skill：
 
-即可自动生成一套固定模板风格的软著材料：
+- **内容**（每次不同）：所有中文文案、模块名、代码片段、架构图层名都由调用方的大模型现写，写进一份 `spec.json`
+- **格式**（每次相同）：Python 脚本只做 schema 校验、docx 组装、字体/颜色/编号统一、配图嵌入、代码行数兜底
 
-- `申请表.docx`
-- `操作手册.docx`
-- `代码文档.docx`
-- `spec.json`
-- `mockups/` 配图目录
+所以两次同样的「系统全名 + 系统简介」会生成内容完全不同、但格式完全一致的三件套。
 
-这个 skill 主要面向常见 Web 系统场景，输出风格固定为 Java / Spring Boot / Vue 类项目文档。
+> 想了解为什么这样设计、和「纯模板生成」的差别，看 `SKILL.md` 顶部。
 
 ## 快速开始
 
-```powershell
+```bash
 git clone git@github.com:kinghy949/software-copyright-generator.git
 cd software-copyright-generator
 pip install -r requirements.txt
-
-python ".\scripts\render_bundle.py" `
-  --name "校园志愿服务管理平台" `
-  --intro "这是一个面向高校的 Web 管理系统，支持志愿活动发布、报名审核、信息录入、查询统计、互动交流和后台管理。" `
-  --output-dir ".\output"
 ```
 
-默认会生成：
+把 skill 安装到 Codex / Claude Code 后，让模型按 `SKILL.md` 的 schema 写出 `spec.json`，再执行：
 
-- `申请表.docx`
-- `操作手册.docx`
-- `代码文档.docx`
-- `spec.json`
-- `mockups/` 配图目录
+```bash
+python scripts/render_bundle.py \
+  --spec ./spec.json \
+  --output-dir ./output
+```
 
-## 功能特点
+生成：
 
-- 根据系统名称和简介自动扩展出申请表、说明书和代码文档内容
-- 申请表 `开发目的` 限制在 50 字以内，`主要功能` 自动扩写到 500–1300 字
-- 操作手册目录带缩进、点引线和页码；模块小节使用分级编号（`2.2.1.1`）和步骤编号（`（1）/（2）`）
-- 申请表与操作手册全文统一为 **宋体 五号 黑色**
-- 代码文档统一为 **Times New Roman + 宋体（中文）五号 黑色**
-- 自动生成 16 张与操作手册章节对应的程序化界面图，兼容 macOS / Linux / Windows 中文字体
-- 操作手册 2.1 节自动嵌入「系统架构图」（用户层 / 前端层 / 接口层 / 业务服务层 / 数据访问层 / 数据与基础设施 六层）
-- 自动输出 3000+ 行（约 60 页以上）代码文档
-- 自动统一软件名称、版本、功能描述和技术特点，减少三件套之间的文案冲突
-- 内置软著常见规则摘要，便于后续审查风险说明
+- `基于SpringBoot的<系统名>_申请表.docx`
+- `基于Java&Vue的<系统名>_操作手册.docx`
+- `基于Java&Vue的<系统名>_代码文档.docx`
+- `<系统名>_spec.json`（已校验、已补齐衍生字段的副本）
+- `mockups/` 16 张配图
+
+如果想看完整的 spec 长什么样，参考 `assets/fixtures/sample_spec.json`。
+
+## 由脚本兜底的格式规则
+
+下列规则不依赖模型，每次都生效：
+
+- 申请表 `开发目的` ≤50 字、`主要功能` 500–1300 字 —— 校验不过会报错让模型重写
+- 操作手册 6 模块 = `modules` 数组长度 = 6 —— 校验
+- 申请表 / 操作手册 全文 **宋体 五号 黑色**
+- 代码文档 **Times New Roman + 宋体（中文） 五号 黑色**
+- 操作手册目录：缩进 + 点引线 + 页码
+- 小节编号：`2.2.x` → `2.2.x.y` → `（n）`
+- 代码文档总非空行 ≥ 3200 行：模型现写的真实代码不足时，脚本追加占位 `XxxSupport001/002/…` 类补齐
+- 操作手册 2.1 节自动嵌入「系统架构图」，层名 / 组件名来自 `spec.architecture.layers`
+
+## 由模型每次现写的内容
+
+- `intro / purpose / main_features / technical_highlights / flow_text`
+- `architecture.description / architecture.layers`
+- 6 个 `modules` 的 `title / summary / groups / steps / code_snippets`
+- `package_name / class_prefix / development_date`
+- `defaults`（建议沿用稳定值，但允许按系统类型微调）
 
 ## 仓库定位
 
-这个仓库适合：
+适合：
 
-- 快速生成固定模板风格的软著三件套草稿
-- 为学校项目、课程项目、管理平台、信息系统准备申报材料初稿
-- 在只有系统名称和简介的情况下快速成稿
+- 项目交付时快速生成「格式合规、内容贴合实际项目」的软著三件套草稿
+- 让大模型完成创意文案 + 代码片段，让脚本完成排版
 
-这个仓库不负责：
+不负责：
 
 - 官方在线正式填报
 - 权利人身份证明、营业执照、委托书等主体材料
 - 法律真实性校验
-- 桌面端、嵌入式、游戏、复杂算法软件的高拟真源码生成
 
 ## 目录结构
 
 ```text
 software-copyright-generator/
-├── SKILL.md
+├── SKILL.md               # 内容生成 playbook（模型必读）
 ├── README.md
-├── agents/
-│   └── openai.yaml
 ├── assets/
+│   ├── fixtures/
+│   │   └── sample_spec.json   # 参考 spec，CI 用作 stand-in
 │   ├── showcase/
 │   │   └── preview-collage.jpg
 │   └── templates/
@@ -90,56 +97,20 @@ software-copyright-generator/
 └── scripts/
     ├── render_bundle.py
     ├── render_mockups.py
-    └── template_rewriter.py
+    ├── template_rewriter.py
+    └── smoke_test.py
 ```
 
 ## 安装方式
 
-如果你要把它作为 Codex Skill 使用，推荐直接放到 `~/.codex/skills/` 或 `%USERPROFILE%\\.codex\\skills\\` 下。
+放到 Codex / Claude Code 的 skills 目录下：
 
-Windows 示例：
-
-```powershell
-git clone git@github.com:kinghy949/software-copyright-generator.git `
-  "$env:USERPROFILE\\.codex\\skills\\software-copyright-generator"
+```bash
+git clone git@github.com:kinghy949/software-copyright-generator.git \
+  ~/.codex/skills/software-copyright-generator
 ```
 
-如果你只是想单独调用脚本，也可以克隆到任意目录后直接运行 `scripts/render_bundle.py`。
-
-## 作为 Skill 调用
-
-### 在 Codex 中显式调用
-
-在支持技能调用的 Codex 环境中，可直接使用：
-
-```text
-Use $software-copyright-generator 为“校园志愿服务管理平台”根据以下简介生成软著三件套：这是一个面向高校的 Web 管理系统，支持信息录入、查询统计、社区互动和后台管理。
-```
-
-### 安装到 Codex Skill 目录
-
-```powershell
-git clone git@github.com:kinghy949/software-copyright-generator.git `
-  "$env:USERPROFILE\\.codex\\skills\\software-copyright-generator"
-```
-
-## 生成内容说明
-
-### 申请表
-
-- 按固定表格模板写入软件名称、版本、开发环境、运行环境、开发目的、主要功能、技术特点等字段
-
-### 操作手册
-
-- 保持固定的 6 个模块结构
-- 自动生成目录、简介、业务流程和模块操作说明
-- 自动插入 16 张程序化界面图
-
-### 代码文档
-
-- 按固定 Java / Vue 风格生成
-- 自动扩展到 60 页以上
-- 用于快速形成软著代码文档草稿
+或独立调用脚本，克隆到任意目录后运行 `scripts/render_bundle.py`。
 
 ## 依赖环境
 
@@ -147,34 +118,25 @@ git clone git@github.com:kinghy949/software-copyright-generator.git `
 - `python-docx`
 - `Pillow`
 
-跨平台说明：脚本会自动按顺序探测 Windows / macOS / Linux 常见中文字体（雅黑、宋体、PingFang、Noto CJK、文泉驿等），无需手动配置。
+脚本会自动按顺序探测 Windows / macOS / Linux 的中文字体（雅黑、宋体、PingFang、Noto CJK、文泉驿），无需手动配置。
 
-如果环境里没有这些包，可自行安装：
-
-```powershell
+```bash
 pip install -r requirements.txt
 ```
 
 ## 校验
 
-仓库中的 skill 结构可通过下列命令校验：
-
-```powershell
-$env:PYTHONUTF8='1'
-python "C:\Users\PC\.codex\skills\.system\skill-creator\scripts\quick_validate.py" "."
+```bash
+python scripts/smoke_test.py
 ```
 
-生成链路的本地烟雾测试：
-
-```powershell
-python ".\scripts\smoke_test.py"
-```
+烟雾测试使用 `assets/fixtures/sample_spec.json` 作为模型产出的 stand-in，验证 schema 校验 + 三个 docx 组装 + 配图嵌入 + 代码行数兜底是否全部通过。
 
 ## 说明
 
-这个项目输出的是“固定模板型软著材料生成器”，重点是速度和成稿率，不等同于官方申报系统，也不保证直接通过审查。正式提交前，仍建议人工检查：
+这个项目输出的是「软著材料草稿」，重点是格式合规和成稿率，不等同于官方申报系统，也不保证直接通过审查。正式提交前仍建议人工检查：
 
 - 软件名称是否统一
-- 主要功能与系统实际是否一致
+- 主要功能是否与系统实际一致
 - 技术特点是否符合真实项目
-- 代码文档是否需要替换为真实源码片段
+- 代码文档是否需要把占位 Support 类替换为真实源码片段

@@ -154,22 +154,21 @@ def draw_architecture_diagram(draw: ImageDraw.ImageDraw, width: int, height: int
     rounded(draw, (60, 60, width - 60, height - 60), fill=(255, 255, 255), radius=32, outline=(226, 232, 240))
     title = f"{spec['software_name']} 系统架构图"
     draw.text((100, 90), title, fill=(17, 24, 39), font=load_font(40))
-    draw.text((100, 142), "前后端分离 · 分层架构 · Spring Boot + Vue + MySQL", fill=(100, 116, 139), font=load_font(22))
+    subtitle = spec.get("architecture", {}).get("subtitle") or "分层架构 · 前后端分离"
+    draw.text((100, 142), subtitle, fill=(100, 116, 139), font=load_font(22))
 
-    accent_light = tuple(min(255, c + 80) for c in accent)
     accent_dark = tuple(max(0, c - 35) for c in accent)
     neutral_bg = (248, 250, 252)
     box_outline = (203, 213, 225)
 
     layer_x0, layer_x1 = 100, width - 100
-    layer_h = 90
     layer_gap = 22
     top_y = 200
 
-    def draw_layer(y: int, title_text: str, items: list[str], header_color):
+    def draw_layer(y: int, layer_h: int, title_text: str, items: list[str], header_color):
         rounded(draw, (layer_x0, y, layer_x1, y + layer_h), fill=neutral_bg, radius=20, outline=box_outline)
         rounded(draw, (layer_x0, y, layer_x0 + 220, y + layer_h), fill=header_color, radius=20)
-        draw.text((layer_x0 + 28, y + 28), title_text, fill="white", font=load_font(26))
+        draw.text((layer_x0 + 28, y + (layer_h - 32) // 2), title_text, fill="white", font=load_font(26))
         usable_left = layer_x0 + 260
         usable_right = layer_x1 - 30
         if not items:
@@ -180,23 +179,20 @@ def draw_architecture_diagram(draw: ImageDraw.ImageDraw, width: int, height: int
             x1 = x0 + cell_w
             rounded(draw, (x0, y + 18, x1, y + layer_h - 18), fill=(255, 255, 255), radius=14, outline=box_outline)
             text_w = draw.textlength(item, font=load_font(22))
-            draw.text((x0 + max(12, (cell_w - text_w) // 2), y + 28), item, fill=(31, 41, 55), font=load_font(22))
+            draw.text((x0 + max(12, (cell_w - text_w) // 2), y + (layer_h - 28) // 2), item, fill=(31, 41, 55), font=load_font(22))
 
-    layers = [
-        ("用户层", ["PC 浏览器", "移动端浏览器", "管理后台"], accent),
-        ("前端层", ["Vue 3 + TypeScript", "Vue Router", "Pinia 状态管理", "Element Plus UI"], accent_dark),
-        ("接口层", ["Nginx 反向代理", "Spring Boot REST API", "鉴权与限流过滤器"], accent),
-        ("业务服务层", ["总览服务", "录入服务", "检索服务", "协作服务", "统计服务", "管理服务"], accent_dark),
-        ("数据访问层", ["MyBatis Plus", "事务管理", "数据校验"], accent),
-        ("数据与基础设施", ["MySQL", "Redis 缓存", "文件存储", "日志服务"], accent_dark),
-    ]
+    layers_spec = spec.get("architecture", {}).get("layers") or []
+    layers: list[tuple[str, list[str], tuple[int, int, int]]] = []
+    for idx, layer in enumerate(layers_spec):
+        header_color = accent if idx % 2 == 0 else accent_dark
+        layers.append((layer["name"], list(layer["components"]), header_color))
 
     available_height = height - 60 - top_y - 60
-    layer_h = max(70, (available_height - layer_gap * (len(layers) - 1)) // len(layers))
+    layer_h = max(70, (available_height - layer_gap * max(1, len(layers) - 1)) // max(1, len(layers)))
 
     y = top_y
     for layer_title, items, header_color in layers:
-        draw_layer(y, layer_title, items, header_color)
+        draw_layer(y, layer_h, layer_title, items, header_color)
         if y + layer_h + layer_gap < height - 80:
             arrow_x = (layer_x0 + layer_x1) // 2
             draw.line((arrow_x, y + layer_h + 2, arrow_x, y + layer_h + layer_gap - 2), fill=accent, width=4)
@@ -212,7 +208,7 @@ def draw_scene(image: Image.Image, spec: dict, scene: str, label: str):
     accent = theme_color(spec["software_name"])
     width, height = image.size
     draw.rectangle((0, 0, width, height), fill=(237, 242, 247))
-    if scene == "overview-flow":
+    if scene in {"architecture", "overview-flow"}:
         draw_architecture_diagram(draw, width, height, spec, accent)
         return
     content_box = draw_browser_frame(draw, width, height, label, accent)

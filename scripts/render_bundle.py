@@ -27,7 +27,7 @@ if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
 from render_mockups import render_mockups  # noqa: E402
-from template_rewriter import build_code_lines, build_manual_sequence, build_spec  # noqa: E402
+from template_rewriter import build_code_lines, build_manual_sequence, load_spec  # noqa: E402
 
 
 RESIDUE_KEYWORDS = ["校园小动物", "campuspet", "AnimalService", "CampusPet", "动物信息录入"]
@@ -231,21 +231,14 @@ def render_bundle(spec: dict, output_dir: Path) -> dict:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Render a software copyright draft bundle.")
-    parser.add_argument("--name", help="Software full name")
-    parser.add_argument("--intro", help="Short software introduction")
-    parser.add_argument("--version", default="V1.0")
-    parser.add_argument("--spec", help="Existing spec JSON path")
+    parser = argparse.ArgumentParser(
+        description="Assemble a software copyright bundle from a model-provided spec.json.",
+    )
+    parser.add_argument("--spec", required=True, help="Path to spec JSON produced by the calling LLM")
     parser.add_argument("--output-dir", required=True, help="Directory for rendered files")
     args = parser.parse_args()
 
-    if args.spec:
-        spec = json.loads(Path(args.spec).read_text(encoding="utf-8"))
-    else:
-        if not args.name or not args.intro:
-            parser.error("--name and --intro are required when --spec is not provided.")
-        spec = build_spec(args.name, args.intro, args.version)
-
+    spec = load_spec(Path(args.spec))
     result = render_bundle(spec, Path(args.output_dir).resolve())
     print(json.dumps(result, ensure_ascii=False, indent=2))
 
