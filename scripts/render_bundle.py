@@ -12,7 +12,8 @@ from pathlib import Path
 
 from docx import Document
 from docx.oxml.ns import qn
-from docx.shared import Pt
+from docx.shared import Pt, RGBColor
+from docx.oxml import OxmlElement
 
 
 SCRIPT_DIR = Path(__file__).resolve().parent
@@ -34,6 +35,41 @@ RESIDUE_KEYWORDS = ["校园小动物", "campuspet", "AnimalService", "CampusPet"
 
 def sanitize_name(name: str) -> str:
     return "".join("_" if c in '<>:"/\\|?*' else c for c in name).strip() or "未命名系统"
+
+
+BLACK = RGBColor(0, 0, 0)
+
+
+def _force_run_style(run, *, font_name: str, east_asia: str, size_pt: float) -> None:
+    run.font.name = font_name
+    run.font.size = Pt(size_pt)
+    run.font.color.rgb = BLACK
+    rpr = run._element.get_or_add_rPr()
+    rfonts = rpr.find(qn("w:rFonts"))
+    if rfonts is None:
+        rfonts = OxmlElement("w:rFonts")
+        rpr.append(rfonts)
+    rfonts.set(qn("w:ascii"), font_name)
+    rfonts.set(qn("w:hAnsi"), font_name)
+    rfonts.set(qn("w:cs"), font_name)
+    rfonts.set(qn("w:eastAsia"), east_asia)
+
+
+def normalize_document_fonts(document: Document, *, font_name: str = "宋体", east_asia: str = "宋体", size_pt: float = 10.5) -> None:
+    """Force all body paragraph and table runs to use the given font, size, and black color."""
+    def walk_paragraphs(paragraphs):
+        for paragraph in paragraphs:
+            for run in paragraph.runs:
+                _force_run_style(run, font_name=font_name, east_asia=east_asia, size_pt=size_pt)
+
+    walk_paragraphs(document.paragraphs)
+    for table in document.tables:
+        for row in table.rows:
+            for cell in row.cells:
+                walk_paragraphs(cell.paragraphs)
+    for section in document.sections:
+        walk_paragraphs(section.header.paragraphs)
+        walk_paragraphs(section.footer.paragraphs)
 
 
 def set_header_text(document: Document, text: str) -> None:
@@ -123,10 +159,7 @@ def write_code_document(document: Document, code_lines: list[str]) -> None:
         paragraph.paragraph_format.space_before = Pt(0)
         paragraph.paragraph_format.line_spacing = 1
         run = paragraph.add_run(line)
-        run.font.name = "Consolas"
-        run.font.size = Pt(8.5)
-        if run._element.rPr is not None:
-            run._element.rPr.rFonts.set(qn("w:eastAsia"), "等线")
+        _force_run_style(run, font_name="Times New Roman", east_asia="宋体", size_pt=10.5)
 
 
 def scan_for_residue(docx_path: Path) -> list[str]:
@@ -164,11 +197,13 @@ def render_bundle(spec: dict, output_dir: Path) -> dict:
     application_doc = Document(APPLICATION_TEMPLATE)
     set_header_text(application_doc, f"基于SpringBoot的{spec['software_name']} {spec['version']} 申请表")
     fill_application_tables(application_doc, spec, source_line_count)
+    normalize_document_fonts(application_doc, font_name="宋体", east_asia="宋体", size_pt=10.5)
     application_doc.save(application_path)
 
     manual_doc = Document(MANUAL_TEMPLATE)
     set_header_text(manual_doc, f"基于Java&Vue的{spec['software_name']} {spec['version']} 操作手册")
     rewrite_manual_paragraphs(manual_doc, build_manual_sequence(spec))
+    normalize_document_fonts(manual_doc, font_name="宋体", east_asia="宋体", size_pt=10.5)
     manual_doc.save(manual_path)
     replace_docx_media(manual_path, mockup_dir)
 

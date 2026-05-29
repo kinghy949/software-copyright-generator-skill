@@ -33,14 +33,28 @@ FONT_CANDIDATES = [
     r"C:\Windows\Fonts\msyh.ttc",
     r"C:\Windows\Fonts\msyhbd.ttc",
     r"C:\Windows\Fonts\simhei.ttf",
+    r"C:\Windows\Fonts\simsun.ttc",
     r"C:\Windows\Fonts\segoeui.ttf",
+    "/System/Library/Fonts/PingFang.ttc",
+    "/System/Library/Fonts/STHeiti Medium.ttc",
+    "/System/Library/Fonts/STHeiti Light.ttc",
+    "/Library/Fonts/Songti.ttc",
+    "/System/Library/Fonts/Supplemental/Songti.ttc",
+    "/System/Library/Fonts/Hiragino Sans GB.ttc",
+    "/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc",
+    "/usr/share/fonts/truetype/wqy/wqy-microhei.ttc",
+    "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
+    "/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc",
 ]
 
 
 def load_font(size: int, bold: bool = False) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
     for path in FONT_CANDIDATES:
         if Path(path).exists():
-            return ImageFont.truetype(path, size=size)
+            try:
+                return ImageFont.truetype(path, size=size)
+            except OSError:
+                continue
     return ImageFont.load_default()
 
 
@@ -82,10 +96,10 @@ def draw_browser_frame(draw, width, height, title, accent):
     rounded(draw, (60, 130, 340, height - 60), fill=accent, radius=28)
     draw.text((92, 170), "系统导航", fill="white", font=load_font(28))
     items = ["首页总览", "信息录入", "智能检索", "互动协作", "数据统计", "业务管理"]
+    item_bg = tuple(max(0, c - 40) for c in accent)
     for idx, item in enumerate(items):
         y = 240 + idx * 82
-        fill = (255, 255, 255, 40)
-        rounded(draw, (78, y, 320, y + 54), fill=(255, 255, 255, 40), radius=18)
+        rounded(draw, (78, y, 320, y + 54), fill=item_bg, radius=18)
         draw.text((102, y + 12), item, fill="white", font=load_font(24))
     return 380, 140, width - 70, height - 70
 

@@ -112,6 +112,40 @@ def build_modules(subject: str) -> list[dict]:
     ]
 
 
+def _build_purpose(subject: str) -> str:
+    text = f"提升{subject}业务的信息化处理效率，规范数据录入、查询与统计协同。"
+    return text if len(text) <= 50 else text[:49] + "。"
+
+
+def _build_main_features(subject: str, industry: str, target_users: str) -> str:
+    paragraphs = [
+        f"本软件面向{industry}领域的{target_users}，围绕{subject}相关业务构建统一的数字化处理与协同管理入口，"
+        f"在功能层面覆盖首页总览、信息录入、智能检索、互动协作、数据统计与业务管理六大核心模块，"
+        f"形成从信息采集、查询定位、协同处理到统计分析的完整闭环。",
+        f"首页总览模块以卡片化和可视化方式集中展示{subject}核心业务指标、待办提醒与最新动态，"
+        f"用户登录后即可在统一界面把握业务运行态势，并通过快捷入口直接跳转到对应功能页面，"
+        f"显著降低不同功能之间的切换成本。",
+        f"信息录入模块面向{subject}业务对象提供结构化表单与附件上传能力，"
+        f"在录入过程中执行必填项校验、格式校验与状态回显，保证数据规范完整；"
+        f"系统同步生成唯一编号并写入业务列表，便于后续追踪与维护。",
+        f"智能检索模块支持关键词搜索、联想提示、分类筛选、时间范围过滤与多字段排序，"
+        f"用户可在大量{subject}业务数据中快速定位目标记录，"
+        f"并通过结果详情面板查看完整字段信息，提升业务处理效率。",
+        f"互动协作模块以主题发布、详情查看、评论回复和楼层跟进为主线，"
+        f"支持{target_users}围绕业务问题进行交流反馈与经验共享，"
+        f"系统对协作过程进行留痕和状态追踪，便于业务事项的持续推进。",
+        f"后台数据统计模块面向管理员构建数据大屏，通过指标卡片、折线图、柱状图和饼图展示"
+        f"{subject}业务的整体规模、分布特征和趋势变化，支持时间维度切换与指标联动分析，"
+        f"为日常运营和管理决策提供直观依据。",
+        f"业务管理模块统一维护{subject}相关业务条目，覆盖新建、编辑、上下架、归档和状态流转等"
+        f"常见操作，配合权限控制与操作日志，确保业务数据的稳定性、可追溯性和长期可维护性。",
+    ]
+    text = "".join(paragraphs)
+    if len(text) > 1300:
+        text = text[:1299] + "。"
+    return text
+
+
 def build_spec(software_name: str, intro: str, version: str = "V1.0") -> dict:
     subject = pick_subject(software_name, intro)
     industry, target_users = pick_industry_and_users(software_name, intro)
@@ -128,12 +162,8 @@ def build_spec(software_name: str, intro: str, version: str = "V1.0") -> dict:
         "intro": intro_text[:140] + ("" if len(intro_text) <= 140 else "。"),
         "industry": industry,
         "target_users": target_users,
-        "purpose": sentence(
-            f"围绕{subject}业务构建统一的信息处理与协同管理平台，减少人工流转成本，提升录入效率、查询效率和数据分析能力"
-        ),
-        "main_features": sentence(
-            f"系统提供首页总览、信息录入、智能检索、互动协作、数据统计和业务管理等核心功能，支持业务对象统一维护、过程留痕、状态跟踪以及多维分析"
-        ),
+        "purpose": _build_purpose(subject),
+        "main_features": _build_main_features(subject, industry, target_users),
         "technical_highlights": sentence(
             "平台采用 Spring Boot 与 Vue 的前后端分离架构，具备清晰的模块边界、稳定的数据访问能力和良好的界面响应体验"
         ),
@@ -184,11 +214,19 @@ def build_spec(software_name: str, intro: str, version: str = "V1.0") -> dict:
 def build_manual_sequence(spec: dict) -> list[str]:
     subject = spec["subject"]
     modules = spec["modules"]
+    def toc_line(title: str, page: int, indent: int = 0) -> str:
+        prefix = "    " * indent
+        dot_count = max(3, 48 - len(prefix) - len(title) - len(str(page)))
+        return f"{prefix}{title} {'.' * dot_count} {page}"
+
     texts = [
         "操作手册", f"基于Java&Vue的{spec['software_name']} {spec['version']}", "目录",
-        "一、软件简介3", "二、业务流程与使用说明4", "2.1 整体业务流程4", "2.2 功能模块说明5",
+        toc_line("一、软件简介", 3),
+        toc_line("二、业务流程与使用说明", 4),
+        toc_line("2.1 整体业务流程", 4, indent=1),
+        toc_line("2.2 功能模块说明", 5, indent=1),
     ]
-    texts.extend([f"2.2.{m['index']} {m['title']}{m['toc_page']}" for m in modules])
+    texts.extend([toc_line(f"2.2.{m['index']} {m['title']}", m['toc_page'], indent=2) for m in modules])
     texts.extend(["一、软件简介", spec["intro"], "二、业务流程与使用说明", "2.1 整体业务流程", spec["flow_text"], "2.2 功能模块说明"])
     line_map = {
         "浏览总览与快捷入口": [
@@ -264,9 +302,10 @@ def build_manual_sequence(spec: dict) -> list[str]:
     }
     for module in modules:
         texts.extend([f"2.2.{module['index']} {module['title']}", summary_map[module["title"]], "操作步骤："])
-        for group_title, _ in module["groups"]:
-            texts.append(group_title)
-            texts.extend(line_map[group_title])
+        for group_idx, (group_title, _) in enumerate(module["groups"], start=1):
+            texts.append(f"2.2.{module['index']}.{group_idx} {group_title}")
+            for step_idx, line in enumerate(line_map[group_title], start=1):
+                texts.append(f"（{step_idx}）{line}")
     return texts
 
 
