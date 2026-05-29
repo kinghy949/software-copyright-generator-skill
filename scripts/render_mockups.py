@@ -58,14 +58,27 @@ def load_font(size: int, bold: bool = False) -> ImageFont.FreeTypeFont | ImageFo
     return ImageFont.load_default()
 
 
+COLOR_PALETTE: tuple[tuple[int, int, int], ...] = (
+    (29, 78, 216),    # blue
+    (5, 150, 105),    # green
+    (217, 119, 6),    # amber
+    (124, 58, 237),   # violet
+    (220, 38, 38),    # red
+    (8, 145, 178),    # cyan
+    (190, 24, 93),    # rose
+    (15, 118, 110),   # teal
+    (101, 163, 13),   # lime
+    (234, 88, 12),    # orange
+    (37, 99, 235),    # indigo-ish blue
+    (79, 70, 229),    # indigo
+)
+
+
 def theme_color(seed: str) -> tuple[int, int, int]:
+    """Deterministic per-seed accent color (stable for a given seed)."""
     digest = hashlib.sha1(seed.encode("utf-8")).hexdigest()
-    hue = int(digest[:2], 16)
-    if hue < 85:
-        return (29, 78, 216)
-    if hue < 170:
-        return (5, 150, 105)
-    return (217, 119, 6)
+    idx = int(digest[:4], 16) % len(COLOR_PALETTE)
+    return COLOR_PALETTE[idx]
 
 
 def rounded(draw: ImageDraw.ImageDraw, box: tuple[int, int, int, int], fill, radius: int = 24, outline=None):
@@ -203,9 +216,15 @@ def draw_architecture_diagram(draw: ImageDraw.ImageDraw, width: int, height: int
         y += layer_h + layer_gap
 
 
-def draw_scene(image: Image.Image, spec: dict, scene: str, label: str):
+def draw_scene(image: Image.Image, spec: dict, scene: str, label: str, accent_seed: str | None = None):
     draw = ImageDraw.Draw(image)
-    accent = theme_color(spec["software_name"])
+    # Architecture page keeps a stable software-wide accent so it reads as
+    # the "primary brand color". All other pages get their own accent so
+    # the manual does not look monochromatic when 16 mockups are stacked.
+    if scene in {"architecture", "overview-flow"} or accent_seed is None:
+        accent = theme_color(spec["software_name"])
+    else:
+        accent = theme_color(f"{spec['software_name']}::{accent_seed}")
     width, height = image.size
     draw.rectangle((0, 0, width, height), fill=(237, 242, 247))
     if scene in {"architecture", "overview-flow"}:
@@ -262,7 +281,7 @@ def render_mockups(spec: dict, output_dir: Path) -> list[Path]:
     for item in spec["image_plan"]:
         size = IMAGE_SIZES[item["filename"]]
         image = Image.new("RGB", size, (255, 255, 255))
-        draw_scene(image, spec, item["scene"], item["label"])
+        draw_scene(image, spec, item["scene"], item["label"], accent_seed=item["filename"])
         path = output_dir / item["filename"]
         if path.suffix.lower() == ".png":
             image.save(path, format="PNG")

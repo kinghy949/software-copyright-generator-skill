@@ -70,7 +70,7 @@ def render_bundle(spec: dict, output_dir: Path) -> dict:
 
     file_stub = safe_filename(spec["software_name"])
     targets = {
-        "application": output_dir / f"基于SpringBoot的{file_stub}_申请表.pdf",
+        "application": output_dir / f"基于Java&Vue的{file_stub}_申请表.pdf",
         "manual": output_dir / f"基于Java&Vue的{file_stub}_操作手册.pdf",
         "code": output_dir / f"基于Java&Vue的{file_stub}_代码文档.pdf",
     }

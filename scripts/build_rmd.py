@@ -215,20 +215,22 @@ def build_rmd_tree(spec: dict, output_dir: Path, mockups_dir_rel: str = "../../m
         if line.strip()
     )
 
+    project_prefix = "基于Java&Vue的"
+    project_prefix_latex = "基于Java\\&Vue的"
     common_includes = {
         "application": {
-            "header_left": f"基于SpringBoot的{latex_escape(spec['software_name'])} {latex_escape(spec['version'])} 申请表",
-            "title": f"基于SpringBoot的{spec['software_name']}",
+            "header_left": f"{project_prefix_latex}{latex_escape(spec['software_name'])} {latex_escape(spec['version'])} 申请表",
+            "title": f"{project_prefix}{spec['software_name']}",
             "subtitle": f"软件著作权申请表 {spec['version']}",
         },
         "manual": {
-            "header_left": f"基于Java\\&Vue的{latex_escape(spec['software_name'])} {latex_escape(spec['version'])} 操作手册",
-            "title": f"基于Java&Vue的{spec['software_name']}",
+            "header_left": f"{project_prefix_latex}{latex_escape(spec['software_name'])} {latex_escape(spec['version'])} 操作手册",
+            "title": f"{project_prefix}{spec['software_name']}",
             "subtitle": f"操作手册 {spec['version']}",
         },
         "code": {
-            "header_left": f"基于Java\\&Vue的{latex_escape(spec['software_name'])} {latex_escape(spec['version'])} 代码文档",
-            "title": f"基于Java&Vue的{spec['software_name']}",
+            "header_left": f"{project_prefix_latex}{latex_escape(spec['software_name'])} {latex_escape(spec['version'])} 代码文档",
+            "title": f"{project_prefix}{spec['software_name']}",
             "subtitle": f"代码文档 {spec['version']}",
         },
     }
