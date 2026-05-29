@@ -215,8 +215,8 @@ def build_rmd_tree(spec: dict, output_dir: Path, mockups_dir_rel: str = "../../m
         if line.strip()
     )
 
-    project_prefix = "基于Java&Vue的"
-    project_prefix_latex = "基于Java\\&Vue的"
+    project_prefix = ""
+    project_prefix_latex = ""
     common_includes = {
         "application": {
             "header_left": f"{project_prefix_latex}{latex_escape(spec['software_name'])} {latex_escape(spec['version'])} 申请表",
