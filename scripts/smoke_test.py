@@ -43,9 +43,10 @@ def main() -> None:
             if path.stat().st_size < MIN_PDF_BYTES:
                 raise RuntimeError(f"{label} PDF too small: {path.stat().st_size} bytes")
 
-        mockups = sorted(Path(result["mockup_dir"]).glob("*.*"))
-        if len(mockups) != 16:
-            raise RuntimeError(f"Expected 16 mockups, got {len(mockups)}")
+        mockups = [p for p in sorted(Path(result["mockup_dir"]).glob("*.*"))
+                   if p.suffix.lower() in {".png", ".jpeg", ".jpg"}]
+        if not (8 <= len(mockups) <= 16):
+            raise RuntimeError(f"Expected 8-16 mockups, got {len(mockups)}")
 
         if result["source_line_count"] < 3200:
             raise RuntimeError(

@@ -82,24 +82,9 @@ def _join_code(lines: list[str]) -> str:
 
 
 def _module_figures(spec: dict, module_index: int) -> list[dict]:
-    """Pick the mockup figures that belong to the given module (1-based)."""
-    plan = spec["image_plan"]
-    grouped: dict[int, list[dict]] = {}
-    plan_iter = iter(plan)
-    next(plan_iter)  # image1 is architecture; skip
-    scenes_per_module = [2, 2, 3, 3, 2, 3]
-    cursor = 0
-    figures: list[dict] = []
-    for idx, scenes_count in enumerate(scenes_per_module, start=1):
-        bucket = []
-        for _ in range(scenes_count):
-            try:
-                item = next(plan_iter)
-            except StopIteration:
-                break
-            bucket.append(item)
-        grouped[idx] = bucket
-    return grouped.get(module_index, [])
+    """Pick the mockup figures whose plan item is tagged with this module."""
+    return [item for item in spec["image_plan"]
+            if item.get("module_index") == module_index]
 
 
 def _build_manual_context(spec: dict, mockups_dir: str) -> dict:
@@ -113,6 +98,7 @@ def _build_manual_context(spec: dict, mockups_dir: str) -> dict:
             "slug": slugify(module["title"]),
             "figure_caption_index": idx,
             "figures": figures,
+            "code_package": module.get("code_package"),
         })
     return {
         "software_name": spec["software_name"],

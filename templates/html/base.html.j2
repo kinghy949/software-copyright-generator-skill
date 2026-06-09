@@ -3,6 +3,17 @@
 <head>
 <meta charset="UTF-8">
 <title>{{ software_name }} · {{ label }}</title>
+{% set t = theme or {} %}
+{% set sidebar_style = t.sidebar_style or 'dark-gradient' %}
+{% set density       = t.density or 'comfortable' %}
+{% set radius        = t.radius or 8 %}
+{% set sidebar_width = t.sidebar_width or 220 %}
+{% set font_family   = t.font_family or '"PingFang SC", "Microsoft YaHei", system-ui, sans-serif' %}
+{% set topbar        = t.topbar or 'crumbs-search-user' %}
+{% set kpi_layout    = t.kpi_layout or 'cols-4' %}
+{% set card_border   = t.card_border or 'soft' %}
+{% set pad = {'compact': 14, 'comfortable': 20, 'spacious': 28}[density] %}
+{% set gap = {'compact': 12, 'comfortable': 16, 'spacious': 20}[density] %}
 <style>
   :root {
     --primary: {{ palette.primary }};
@@ -18,33 +29,60 @@
     --success: #10b981;
     --warning: #f59e0b;
     --danger:  #ef4444;
+    --radius: {{ radius }}px;
+    --pad: {{ pad }}px;
+    --gap: {{ gap }}px;
+    --sidebar-w: {{ sidebar_width }}px;
   }
   * { box-sizing: border-box; }
   html, body {
     margin: 0; padding: 0;
     background: var(--bg);
     color: var(--text);
-    font-family: "PingFang SC", "Microsoft YaHei", "Hiragino Sans GB", "Source Han Sans SC", "Noto Sans CJK SC", system-ui, sans-serif;
+    font-family: {{ font_family }};
     font-size: 14px;
     line-height: 1.5;
     -webkit-font-smoothing: antialiased;
   }
   .app { display: flex; min-height: 100vh; }
   .sidebar {
-    width: 220px; flex-shrink: 0;
+    width: var(--sidebar-w); flex-shrink: 0;
+    padding: 20px 0;
+    {% if sidebar_style == 'dark-gradient' %}
     background: linear-gradient(180deg, var(--primary-dark) 0%, var(--primary) 100%);
     color: #fff;
-    padding: 20px 0;
+    {% elif sidebar_style == 'dark-flat' %}
+    background: #1f2937;
+    color: #f3f4f6;
+    {% elif sidebar_style == 'light-rail' %}
+    background: var(--surface);
+    color: var(--text);
+    border-right: 1px solid var(--border);
+    {% elif sidebar_style == 'accent-bar' %}
+    background: var(--surface);
+    color: var(--text);
+    border-right: 4px solid var(--primary);
+    {% endif %}
   }
   .brand {
     padding: 0 24px 20px;
+    {% if sidebar_style in ['dark-gradient', 'dark-flat'] %}
     border-bottom: 1px solid rgba(255,255,255,0.15);
+    {% else %}
+    border-bottom: 1px solid var(--border);
+    {% endif %}
   }
   .brand .logo {
     display: inline-flex; align-items: center; justify-content: center;
     width: 36px; height: 36px;
+    {% if sidebar_style in ['dark-gradient', 'dark-flat'] %}
     background: rgba(255,255,255,0.18);
-    border-radius: 8px;
+    color: #fff;
+    {% else %}
+    background: var(--primary-soft);
+    color: var(--primary-dark);
+    {% endif %}
+    border-radius: calc(var(--radius) * 0.85);
     font-weight: 700; font-size: 18px;
     margin-right: 10px;
     vertical-align: middle;
@@ -54,19 +92,29 @@
   .nav { list-style: none; padding: 16px 12px; margin: 0; }
   .nav li {
     padding: 10px 14px;
-    border-radius: 6px;
+    border-radius: calc(var(--radius) * 0.75);
     font-size: 13px;
+    {% if sidebar_style in ['dark-gradient', 'dark-flat'] %}
     color: rgba(255,255,255,0.85);
+    {% else %}
+    color: var(--text-muted);
+    {% endif %}
     cursor: pointer;
     margin-bottom: 2px;
   }
   .nav li.active {
+    {% if sidebar_style in ['dark-gradient', 'dark-flat'] %}
     background: rgba(255,255,255,0.18);
     color: #fff; font-weight: 500;
-  }
-  .nav li .icon { display: inline-block; width: 14px; height: 14px; margin-right: 8px;
-    background: currentColor; opacity: 0.7;
-    -webkit-mask: var(--icon) center/contain no-repeat; mask: var(--icon) center/contain no-repeat;
+    {% elif sidebar_style == 'light-rail' %}
+    background: var(--primary-soft);
+    color: var(--primary-dark); font-weight: 600;
+    {% elif sidebar_style == 'accent-bar' %}
+    background: var(--primary-soft);
+    color: var(--primary-dark); font-weight: 600;
+    border-left: 3px solid var(--primary);
+    padding-left: 11px;
+    {% endif %}
   }
   .main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
   .topbar {
@@ -84,12 +132,20 @@
     width: 220px; height: 32px;
     background: var(--surface-2);
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: calc(var(--radius) * 0.75);
     padding: 0 12px;
     font-size: 12px;
     color: var(--text-muted);
     display: flex; align-items: center;
   }
+  .topbar .tab {
+    height: 32px; padding: 0 14px;
+    border-radius: calc(var(--radius) * 0.75);
+    background: var(--surface-2);
+    color: var(--text-muted);
+    font-size: 13px; display: flex; align-items: center;
+  }
+  .topbar .tab.on { background: var(--primary-soft); color: var(--primary-dark); font-weight: 500; }
   .topbar .user {
     display: flex; align-items: center; gap: 8px;
     font-size: 13px;
@@ -108,11 +164,21 @@
   .page-desc  { color: var(--text-muted); font-size: 13px; margin: 0 0 20px; }
   .card {
     background: var(--surface);
+    border-radius: var(--radius);
+    padding: var(--pad);
+    {% if card_border == 'soft' %}
     border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 20px;
+    {% elif card_border == 'thin' %}
+    border: 1px solid var(--border);
+    {% elif card_border == 'shadow' %}
+    border: 1px solid transparent;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06), 0 4px 12px rgba(15, 23, 42, 0.04);
+    {% elif card_border == 'flat' %}
+    border: 1px solid transparent;
+    background: var(--surface-2);
+    {% endif %}
   }
-  .card + .card { margin-top: 16px; }
+  .card + .card { margin-top: var(--gap); }
   .card-title {
     font-size: 15px; font-weight: 600;
     margin: 0 0 16px;
@@ -126,7 +192,8 @@
   .btn {
     display: inline-flex; align-items: center;
     height: 32px; padding: 0 14px;
-    border-radius: 4px; border: 1px solid var(--primary);
+    border-radius: calc(var(--radius) * 0.5);
+    border: 1px solid var(--primary);
     background: var(--primary); color: #fff;
     font-size: 13px; cursor: pointer;
   }
@@ -159,14 +226,20 @@
   .tag.warning { background: #fef3c7; color: #b45309; }
   .tag.danger  { background: #fee2e2; color: #b91c1c; }
   .tag.neutral { background: var(--surface-2); color: var(--text-muted); }
-  .grid { display: grid; gap: 16px; }
+  .grid { display: grid; gap: var(--gap); }
   .grid.cols-4 { grid-template-columns: repeat(4, 1fr); }
   .grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
   .grid.cols-2 { grid-template-columns: repeat(2, 1fr); }
+  .grid.cols-3-plus-1 { grid-template-columns: 2fr 1fr 1fr 1fr; }
   .kpi {
     background: var(--surface);
+    border-radius: var(--radius);
+    padding: var(--pad);
+    {% if card_border == 'shadow' %}
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06), 0 4px 12px rgba(15, 23, 42, 0.04);
+    {% else %}
     border: 1px solid var(--border);
-    border-radius: 8px; padding: 18px;
+    {% endif %}
   }
   .kpi .label { color: var(--text-muted); font-size: 12px; }
   .kpi .value { font-size: 26px; font-weight: 700; margin: 6px 0 4px; color: var(--text); }
@@ -186,7 +259,7 @@
   .field .textarea {
     width: 100%; min-height: 34px;
     border: 1px solid var(--border);
-    border-radius: 4px;
+    border-radius: calc(var(--radius) * 0.5);
     padding: 7px 10px;
     background: var(--surface);
     font-size: 13px; color: var(--text);
@@ -201,7 +274,7 @@
   }
   .pagination .pager {
     display: inline-flex; align-items: center; justify-content: center;
-    width: 28px; height: 28px; border-radius: 4px;
+    width: 28px; height: 28px; border-radius: calc(var(--radius) * 0.5);
     border: 1px solid var(--border); background: var(--surface);
   }
   .pagination .pager.active { background: var(--primary); color: #fff; border-color: var(--primary); }
@@ -209,7 +282,7 @@
     display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
     padding: 14px 16px;
     background: var(--surface-2);
-    border: 1px solid var(--border); border-radius: 6px;
+    border: 1px solid var(--border); border-radius: calc(var(--radius) * 0.75);
     margin-bottom: 16px;
   }
   .filters .chip {
@@ -235,13 +308,39 @@
   </aside>
   <section class="main">
     <header class="topbar">
-      <div class="crumbs">{{ breadcrumb }} / <b>{{ label }}</b></div>
-      <div class="spacer"></div>
-      <div class="search-mini">🔍 全局检索…</div>
-      <div class="user">
-        <div class="avatar">{{ user_initial }}</div>
-        <span>{{ user_name }}</span>
-      </div>
+      {% if topbar == 'crumbs-search-user' %}
+        <div class="crumbs">{{ breadcrumb }} / <b>{{ label }}</b></div>
+        <div class="spacer"></div>
+        <div class="search-mini">🔍 全局检索…</div>
+        <div class="user">
+          <div class="avatar">{{ user_initial }}</div>
+          <span>{{ user_name }}</span>
+        </div>
+      {% elif topbar == 'search-user' %}
+        <div class="search-mini" style="width: 320px;">🔍 在 {{ short_name }} 中搜索…</div>
+        <div class="spacer"></div>
+        <div class="user">
+          <div class="avatar">{{ user_initial }}</div>
+          <span>{{ user_name }}</span>
+        </div>
+      {% elif topbar == 'crumbs-user' %}
+        <div class="crumbs">{{ breadcrumb }} / <b>{{ label }}</b></div>
+        <div class="spacer"></div>
+        <div class="user">
+          <div class="avatar">{{ user_initial }}</div>
+          <span>{{ user_name }}</span>
+        </div>
+      {% elif topbar == 'rich-tabs' %}
+        <div class="tab on">{{ label }}</div>
+        <div class="tab">最近浏览</div>
+        <div class="tab">收藏</div>
+        <div class="spacer"></div>
+        <div class="search-mini">🔍 全局检索…</div>
+        <div class="user">
+          <div class="avatar">{{ user_initial }}</div>
+          <span>{{ user_name }}</span>
+        </div>
+      {% endif %}
     </header>
     <main class="content">
       <h1 class="page-title">{{ label }}</h1>

@@ -1,6 +1,6 @@
 ---
 name: software-copyright-generator
-description: "Generate a software copyright registration material bundle for common Web systems. Use when the user asks for 软著, 软件著作权, 申请表, 操作手册, 代码文档, 三件套, or wants to generate copyright application materials from only a software name and a short Chinese system introduction. The skill expects the calling model (Claude / Codex) to write all natural-language content and Java/Vue code into a spec.json; the bundled Python pipeline validates the spec, renders 16 mockup images, builds three R Markdown files and compiles them to PDFs via xelatex (TinyTeX) with proper TOC, page numbers, fonts, and formatting."
+description: "Generate a software copyright registration material bundle for common Web systems. Use when the user asks for 软著, 软件著作权, 申请表, 操作手册, 代码文档, 三件套, or wants to generate copyright application materials from only a software name and a short Chinese system introduction. The skill expects the calling model (Claude / Codex) to write all natural-language content and Java/Vue code into a spec.json; the bundled Python pipeline validates the spec, renders 8-16 mockup images with a per-spec theme and sidebar derived from the actual modules, builds three R Markdown files and compiles them to PDFs via xelatex (TinyTeX) with proper TOC, page numbers, fonts, and formatting. The manual and code documents cross-reference each other so the source program 鉴别材料 matches the operation manual."
 ---
 
 # Software Copyright Generator
@@ -15,8 +15,9 @@ Workflow for every invocation:
 2. **Write all申请表 / 操作手册 / 代码文档 content yourself** into a fresh `spec.json` that conforms to the schema below. Do not reuse content from previous runs verbatim — vary the wording, module names that are appropriate to the system, code identifiers, and architecture layers each time. Two invocations with the same inputs should produce visibly different content.
 3. Run `scripts/render_pdf.py --spec spec.json --output-dir <out>`. The script will:
    - validate the spec (and exit with a clear error if anything is wrong) before invoking R
-   - render 16 mockup images by rendering Jinja HTML templates (under `templates/html/`) and screenshotting them via headless Chromium (Playwright); all 16 images share one palette derived from `software_name`
-   - build three R Markdown files (`application.Rmd`, `manual.Rmd`, `code.Rmd`) under `<out>/_build/`
+   - derive a visual **theme** (sidebar style, density, corner radius, font, topbar variant, card-border style) and a **sidebar nav** (defaulting to module titles, so each system gets a unique menu) from the spec
+   - render 8-16 mockup images by rendering Jinja HTML templates (under `templates/html/`) and screenshotting them via headless Chromium (Playwright); image count is deterministic-per-software_name (or set explicitly via `image_plan_size`), all images share one palette + theme so the bundle reads as one product
+   - build three R Markdown files (`application.Rmd`, `manual.Rmd`, `code.Rmd`) under `<out>/_build/`; the manual cross-references each module's Java package so the 操作手册 and 代码文档 stay aligned
    - call `Rscript -e 'rmarkdown::render(...)'` per document to compile each into a PDF via xelatex
    - copy the PDFs to `<out>/` with friendly names
 4. If the script errors, **read the error message and rewrite spec.json**; do not bypass the script.
@@ -45,6 +46,9 @@ Required top-level fields (the validator will reject the spec if any is missing 
 | `development_date` | string | non-empty | 形如 `2026年05月29日` |
 | `package_name` | string | non-empty | Java 包名，会用于占位 Support 类 |
 | `class_prefix` | string | non-empty | Java 类前缀 |
+| `nav_items` | array | optional, 3-10 ≤14 字 | 侧边栏菜单（不写则用模块标题自动生成）；模型可写入符合系统业务的真实菜单 |
+| `image_plan_size` | int | optional, 8-16 | 截图总数（含 1 张架构图）；不写则按软件名哈希确定 |
+| `theme` | object | optional | 视觉主题覆写，键见下文 |
 
 ### `architecture`
 
@@ -76,9 +80,18 @@ Required top-level fields (the validator will reject the spec if any is missing 
     }
     // 2–4 个 group
   ],
-  "code_snippets": ["≥1 段，建议 4–6 段的代码字符串"]
+  "code_snippets": ["≥1 段，建议 4–6 段的代码字符串"],
+  // optional — 影响该模块对应截图选用的场景；不写则按模块序号自动挑选
+  "scene_hints": ["dashboard", "list", "form", "success", "search", "community",
+                  // 或具体 scene key 如 "record-edit"]
 }
 ```
+
+`scene_hints` 接受两类值：
+- **kind**：`dashboard` / `list` / `form` / `success` / `search` / `community`（每个 kind 自动展开为对应场景集合）
+- **scene key**：完整列表见 `SUPPORTED_SCENES`，覆盖 `dashboard-overview` / `dashboard-dimensions` / `overview-home` / `overview-focus` / `record-edit` / `record-success` / `search-input` / `search-result` / `search-filter` / `community-post` / `community-detail` / `community-reply` / `manage-create` / `manage-edit` / `manage-archive`
+
+模块标题既会出现在侧边栏（除非显式提供 `nav_items`），又会作为操作手册章节名 + 代码文档章节名，保证两份文档一一对应。
 
 模块标题应当贴合系统业务，例如校园志愿系统的模块标题可以是「志愿活动总览」「活动信息录入」「志愿者智能检索」等，不要写成纯通用名词。
 
@@ -99,6 +112,25 @@ Required top-level fields (the validator will reject the spec if any is missing 
 `dev_os`, `dev_tools`, `run_platform`, `support_software`, `languages`
 
 这些值通常稳定（原始取得 / 全部权利 / 应用软件 / 原创 / 单独开发 / 未发表 / 标准开发机硬件 / Windows / IDEA + Maven + Git / Java + Vue + MySQL 等），但每次仍由你写入，允许根据系统类型微调（例如桌面端可以把 `dev_tools` 改为 `Visual Studio` 等）。
+
+### `theme` （可选覆写）
+
+不写则由 `software_name` 哈希派生，所有键都可单独覆写：
+
+```jsonc
+{
+  "sidebar_style": "dark-gradient | dark-flat | light-rail | accent-bar",
+  "density":       "compact | comfortable | spacious",
+  "radius":        4 | 6 | 8 | 12,
+  "sidebar_width": 180 | 200 | 220 | 240,
+  "font_family":   "<CSS font stack>",
+  "topbar":        "crumbs-search-user | search-user | crumbs-user | rich-tabs",
+  "kpi_layout":    "cols-4 | cols-3-plus-1 | cols-2",
+  "card_border":   "soft | thin | shadow | flat"
+}
+```
+
+通常不需要填——目的就是让不同软件名自动出来不同观感。仅当用户明确希望某种风格时再覆写。
 
 ## Format Constraints Enforced by the Pipeline
 
@@ -146,8 +178,8 @@ The render output directory contains:
 - `基于SpringBoot的<系统名>_申请表.pdf`
 - `基于Java&Vue的<系统名>_操作手册.pdf`
 - `基于Java&Vue的<系统名>_代码文档.pdf`
-- `<系统名>_spec.json` (the normalized, validated spec)
-- `mockups/` with 16 generated images
+- `<系统名>_spec.json` (the normalized, validated spec — includes resolved `theme`, `nav_items`, `image_plan`)
+- `mockups/` with 8-16 generated images (number depends on `image_plan_size` / hash)
 - `_build/` with the intermediate Rmd / tex sources (useful for debugging LaTeX errors)
 
 ## What This Skill Will Not Do

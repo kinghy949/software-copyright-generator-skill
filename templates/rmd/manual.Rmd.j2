@@ -53,6 +53,10 @@ knitr::include_graphics("{{ mockups_dir }}/image1.png")
 
 {{ module.summary }}
 
+{% if module.code_package %}
+**代码实现：** 本模块业务逻辑由 `{{ module.code_package }}` 包下的核心类承载，完整源码详见《代码文档》中「{{ module.title }}」一章。
+{% endif %}
+
 **操作步骤：**
 
 {% for group in module.groups %}
