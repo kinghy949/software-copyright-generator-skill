@@ -15,6 +15,8 @@
 
 两次同样的「系统全名 + 系统简介」会生成内容不同、但排版完全一致的三份 PDF。
 
+不同软件名会自动派生**不同的视觉主题**（侧边栏样式 / 内边距 / 圆角 / 字体 / 顶栏布局 / 卡片边框）和**不同的菜单结构**（默认用 6 个模块标题作为侧边栏项），让多份软著看起来不像一套模板。
+
 ## 快速开始
 
 ```bash
@@ -42,11 +44,11 @@ python scripts/render_pdf.py \
 
 生成：
 
-- `基于SpringBoot的<系统名>_申请表.pdf` — 封面 + 3 张属性表
-- `基于Java&Vue的<系统名>_操作手册.pdf` — 封面 + 真目录 + 系统架构图 + 6 模块章节 + 16 张配图
-- `基于Java&Vue的<系统名>_代码文档.pdf` — 封面 + 真目录 + 6 模块代码 + 附录 A 通用工具类
-- `<系统名>_spec.json`（已校验、已补齐衍生字段）
-- `mockups/` 16 张配图
+- `<系统名>_申请表.pdf` — 封面 + 3 张属性表
+- `<系统名>_操作手册.pdf` — 封面 + 真目录 + 系统架构图 + 6 模块章节（含到代码文档的交叉引用）+ 8–16 张配图
+- `<系统名>_代码文档.pdf` — 封面 + 真目录 + 6 模块代码 + 附录 A 通用工具类
+- `<系统名>_spec.json`（已校验、已补齐衍生字段，含主题 / 菜单 / 图片计划）
+- `mockups/` 8–16 张配图（数量由 `image_plan_size` 或软件名哈希决定）
 - `_build/` 中间 Rmd / tex 源码（调试用）
 
 ## 由 Rmd + LaTeX 兜底的格式规则
@@ -66,8 +68,32 @@ python scripts/render_pdf.py \
 - `intro / purpose / main_features / technical_highlights / flow_text`
 - `architecture.description / architecture.layers`
 - 6 个 `modules` 的 `title / summary / groups / steps / code_snippets`
+  - 可选 `scene_hints`：指定该模块截图采用哪类场景（dashboard/list/form/success/search/community 或具体 scene key）
 - `package_name / class_prefix / development_date`
 - `defaults`（建议沿用稳定值，但允许按系统类型微调）
+
+## 由模型可选覆写的随机项
+
+不写时由 `software_name` 哈希派生，每个系统天然不同；显式写入则按指定值生效。
+
+- `nav_items` — 侧边栏菜单（3–10 项 ≤14 字），默认 = `[工作台] + 模块标题 + [系统设置]`
+- `image_plan_size` — 截图总数（8–16，含 1 张架构图）
+- `theme` — 视觉主题（任一键可单独覆写）：
+  - `sidebar_style`：`dark-gradient | dark-flat | light-rail | accent-bar`
+  - `density`：`compact | comfortable | spacious`
+  - `radius`：`4 | 6 | 8 | 12`
+  - `sidebar_width`：`180 | 200 | 220 | 240`
+  - `font_family`：自定义 CSS 字体栈
+  - `topbar`：`crumbs-search-user | search-user | crumbs-user | rich-tabs`
+  - `card_border`：`soft | thin | shadow | flat`
+
+## 操作手册 ↔ 源程序鉴别材料一致性
+
+为满足软著审查中「文档鉴别材料与源程序鉴别材料相符」的要求：
+
+- 每个模块的标题同时出现在**侧边栏菜单**、**操作手册章节**、**代码文档章节**三处。
+- 操作手册每个模块下自动追加一行交叉引用：「本模块业务逻辑由 `com.x.y.z` 包下的核心类承载，完整源码详见《代码文档》中「<模块名>」一章」（`package` 行从 `code_snippets` 自动解析）。
+- 截图按 `module_index` 归属到对应模块，截图中侧边栏的高亮项也指向该模块。
 
 ## 仓库定位
 
@@ -106,7 +132,7 @@ software-copyright-generator/
 └── scripts/
     ├── render_pdf.py           # 入口：校验 → 配图 → Rmd → PDF
     ├── build_rmd.py            # Jinja 渲染三份 Rmd
-    ├── render_mockups.py       # 16 张配图渲染（含架构图）
+    ├── render_mockups.py       # 8–16 张配图渲染（含架构图，主题驱动样式）
     ├── template_rewriter.py    # spec 校验 + 代码分段 + 行数兜底
     └── smoke_test.py           # CI 端到端冒烟测试
 ```
@@ -120,7 +146,7 @@ git clone git@github.com:kinghy949/software-copyright-generator.git \
 
 ## 依赖环境
 
-- Python 3.12+ : `Pillow`, `Jinja2`, `pikepdf`
+- Python 3.12+ : `Jinja2`, `pikepdf`, `playwright`（首次还需 `playwright install chromium`）
 - R 4.x : `rmarkdown`, `knitr`, `tinytex`
 - TinyTeX (xelatex) — 首次渲染时自动拉取缺失的 LaTeX 包
 - pandoc ≥ 2
@@ -132,7 +158,7 @@ git clone git@github.com:kinghy949/software-copyright-generator.git \
 python scripts/smoke_test.py
 ```
 
-烟雾测试使用 `assets/fixtures/sample_spec.json` 作为模型产出的 stand-in，验证 schema 校验 + 三份 PDF 编译 + 目录书签数 + 代码 PDF 页数 ≥ 40。
+烟雾测试使用 `assets/fixtures/sample_spec.json` 作为模型产出的 stand-in，验证 schema 校验 + 三份 PDF 编译 + 目录书签数 + 代码 PDF 页数 ≥ 40 + 截图数量落在 8–16 区间。
 
 ## 说明
 
