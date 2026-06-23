@@ -39,6 +39,7 @@ PREAMBLE_FILE = TEMPLATE_DIR / "preamble.tex"
 
 
 DOCUMENTS = ("application", "manual", "code")
+GENAI_DOC = "genai_declaration"
 
 
 def latex_escape(text: str) -> str:
@@ -153,6 +154,22 @@ def _build_application_context(spec: dict, source_line_count: int) -> dict:
     }
 
 
+def _build_genai_context(spec: dict) -> dict | None:
+    decl = spec.get("genai_declaration")
+    if not decl or not decl.get("uses_genai"):
+        return None
+    contact = decl.get("contact")
+    return {
+        "software_name": spec["software_name"],
+        "version": spec["version"],
+        "software_name_latex": latex_escape(spec["software_name"]),
+        "applicant_name_latex": latex_escape(decl["applicant_name"]),
+        "credit_code_latex": latex_escape(decl["credit_code"]),
+        "contact_latex": latex_escape(contact) if contact else "",
+        "signature_date_latex": latex_escape(decl["signature_date"]),
+    }
+
+
 def _build_code_context(spec: dict, sections: dict) -> dict:
     module_blocks = []
     for module in sections["modules"]:
@@ -165,7 +182,6 @@ def _build_code_context(spec: dict, sections: dict) -> dict:
         "version": spec["version"],
         "bootstrap_code": _join_code(sections["bootstrap"]),
         "modules": module_blocks,
-        "support_code": _join_code(sections["support"]) or "// no padding required",
     }
 
 
@@ -196,7 +212,6 @@ def build_rmd_tree(spec: dict, output_dir: Path, mockups_dir_rel: str = "../../m
         1 for line in (
             list(code_sections["bootstrap"])
             + [line for module in code_sections["modules"] for line in module["lines"]]
-            + list(code_sections["support"])
         )
         if line.strip()
     )
@@ -227,8 +242,22 @@ def build_rmd_tree(spec: dict, output_dir: Path, mockups_dir_rel: str = "../../m
         "code": _build_code_context(spec, code_sections),
     }
 
+    genai_ctx = _build_genai_context(spec)
+    docs_to_build = list(DOCUMENTS)
+    if genai_ctx is not None:
+        doc_contexts[GENAI_DOC] = genai_ctx
+        common_includes[GENAI_DOC] = {
+            "header_left": (
+                f"{latex_escape(spec['software_name'])} "
+                "合法合规及原创性声明"
+            ),
+            "title": spec["software_name"],
+            "subtitle": "合法合规及原创性声明文件",
+        }
+        docs_to_build.append(GENAI_DOC)
+
     rmd_paths: dict[str, Path] = {}
-    for doc in DOCUMENTS:
+    for doc in docs_to_build:
         sub = build_root / doc
         sub.mkdir(parents=True, exist_ok=True)
         shutil.copy(PREAMBLE_FILE, sub / "preamble.tex")

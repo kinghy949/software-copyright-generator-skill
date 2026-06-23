@@ -74,10 +74,14 @@ def render_bundle(spec: dict, output_dir: Path) -> dict:
         "manual": output_dir / f"{file_stub}_操作手册.pdf",
         "code": output_dir / f"{file_stub}_代码文档.pdf",
     }
+    if "genai_declaration" in pdfs:
+        targets["genai_declaration"] = (
+            output_dir / f"{file_stub}_合法合规及原创性声明文件.pdf"
+        )
     for doc, target in targets.items():
         shutil.copy(pdfs[doc], target)
 
-    return {
+    result = {
         "spec_path": str(spec_path),
         "application_path": str(targets["application"]),
         "manual_path": str(targets["manual"]),
@@ -86,6 +90,9 @@ def render_bundle(spec: dict, output_dir: Path) -> dict:
         "build_root": str(build_result["build_root"]),
         "source_line_count": build_result["source_line_count"],
     }
+    if "genai_declaration" in targets:
+        result["genai_declaration_path"] = str(targets["genai_declaration"])
+    return result
 
 
 def main() -> None:
